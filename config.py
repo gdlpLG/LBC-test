@@ -1,4 +1,4 @@
-from models import Search, Parameters
+from model import Search, Parameters
 import lbc
 
 def handle(ad: lbc.Ad, search_name: str):

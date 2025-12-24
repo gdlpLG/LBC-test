@@ -4,7 +4,7 @@
 **Stay notified when new ads appear on Leboncoin**
 
 ```python
-from models import Search, Parameters
+from model import Search, Parameters
 import lbc
 
 def handle(ad: lbc.Ad, search_name: str):
@@ -73,7 +73,7 @@ Each `Search` object should be configured with the rules for the ads you want to
 
 For example, if you want to track ads for a **Porsche 944** priced between 0€ and 25,000€ anywhere in France:
 ```python
-from models import Search, Parameters
+from model import Search, Parameters
 
 Search(
     name="Porsche 944",
@@ -120,7 +120,7 @@ You can configure a proxy, here is an example:
 
 ```python
 from lbc import Proxy
-from models import Search
+from model import Search
 
 proxy = Proxy(
     host="127.0.0.1",

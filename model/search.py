@@ -1,7 +1,7 @@
 from lbc import Proxy, Ad
 from .parameters import Parameters
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Optional
 
 @dataclass
 class Search:
@@ -9,4 +9,4 @@ class Search:
     parameters: Parameters
     delay: float
     handler: Callable[[Ad, str], None]
-    proxy: Proxy = None
+    proxy: Optional[Proxy] = None

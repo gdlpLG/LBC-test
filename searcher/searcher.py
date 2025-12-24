@@ -1,4 +1,4 @@
-from models import Search
+from model import Search
 from lbc import Client, Sort
 from .id import ID
 from .logger import logger
