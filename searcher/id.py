@@ -1,36 +1,25 @@
-from .logger import logger
-
-from typing import List, Final
-import os
-import json
-
-MAX_ID: Final[int] = 10_000
+from database import get_all_ad_ids
 
 class ID:
     def __init__(self):
-        self._ids: List[str] = self._get_ids()
+        """
+        Initializes the ID checker by loading all existing ad IDs
+        from the central SQLite database.
+        """
+        self._ids = get_all_ad_ids()
 
-    @property
-    def ids(self) -> List[str]:
-        return self._ids
+    def add(self, ad_id: str) -> bool:
+        """
+        Checks if an ad_id is new. Returns True if the ID is not already
+        in our list of known IDs, False otherwise.
 
-    def _get_ids(self) -> List[str]:
-        ids: List[str] = []
-        if os.path.exists("id.json"):
-            with open("id.json", "r") as f:
-                try:
-                    ids = json.load(f)
-                except json.JSONDecodeError:
-                    os.remove("id.json")
-                except:
-                    logger.exception("An error occurred while attempting to open the id.json file.")
-        return ids
-
-    def add(self, id: str) -> bool:
-        if not id in self._ids:
-            self._ids.append(id)
-            with open("id.json", "w") as f:
-                json.dump(self._ids[-MAX_ID:], f, indent=3)
-            self._ids = self._ids[-MAX_ID:]
+        The actual saving is handled by the `handle` function, which
+        writes to the database. This class just prevents re-processing.
+        """
+        if ad_id not in self._ids:
+            # The ID is new. Add it to the in-memory list for this session
+            # to prevent processing it again in the same run.
+            self._ids.append(ad_id)
             return True
+        # The ID is already known, so it's not a new ad.
         return False
