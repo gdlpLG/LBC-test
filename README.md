@@ -1,155 +1,56 @@
-# lbc-finder
+# LBC Finder V5 🚀
 [![GitHub license](https://img.shields.io/github/license/etienne-hd/lbc?style=for-the-badge)](https://github.com/etienne-hd/lbc/blob/master/LICENSE)
 
-**Stay notified when new ads appear on Leboncoin**
+**Restez informé en temps réel des nouvelles annonces Leboncoin avec Analyse IA et Recherche Naturelle.**
 
-```python
-from model import Search, Parameters
-import lbc
+LBC Finder automatise la surveillance du site Leboncoin. Contrairement aux alertes classiques, il permet de filtrer intelligemment les résultats et de générer des résumés automatiques via IA pour gagner du temps.
 
-def handle(ad: lbc.Ad, search_name: str):
-    print(f"[{search_name}] New ads!")
-    print(f"Title : {ad.subject}")
-    print(f"Price : {ad.price} €")
-    print(f"URL : {ad.url}")
-    print("-" * 40)
+## ✨ Caractéristiques principales
 
-location = lbc.City( 
-    lat=48.85994982004764,
-    lng=2.33801967847424,
-    radius=10_000, # 10 km
-    city="Paris"
-)
+*   **🔍 Recherche en Langage Naturel (NLP)** : Plus besoin de remplir des formulaires complexes. Tapez simplement : *"Je cherche un vélo électrique à Bordeaux moins de 1000€"*.
+*   **🤖 Analyse IA & Résumés** : L'IA parcourt les descriptions pour vous (points forts, points faibles, caractéristiques clés).
+*   **📂 Base de Données SQLite** : Toutes les annonces trouvées sont sauvegardées localement pour historique et analyse.
+*   **🕵️ Mode Discret** : Délais aléatoires et gestion des agents utilisateurs pour éviter les blocages.
+*   **📈 Analyse de Prix** : Comparez les offres par rapport à votre prix idéal.
 
-CONFIG = [
-    Search(
-        name="Location Paris",
-        parameters=Parameters(
-            text="maison",
-            locations=[location],
-            category=lbc.Category.IMMOBILIER,
-            square=[200, 400],
-            price=[300_000, 700_000]
-        ),
-        delay=60 * 5, # Check every 5 minutes 
-        handler=handle
-    ),
-    ... # More
-]
-```
-*lbc-finder is not affiliated with, endorsed by, or in any way associated with Leboncoin or its services. Use at your own risk.*
+## 🛠️ Installation
 
-This project uses [lbc](https://github.com/etienne-hd/lbc), an unofficial library to interact with Leboncoin API.
-
-## Features
-* Advanced Search (text, category, price, location, square, etc.)
-* Proxy Support for anonymity and bypassing rate limits
-* Custom Logger with log file
-* Configurable search interval (delay)
-* Handler function triggered on new ads for full customization
-* Multiple simultaneous searches with threading
-* Easy integration with notifications (Discord, Telegram, email…) via handler
-
-## Installation
-Docker support will be added soon.
-
-Required **Python 3.9+**
-1. **Clone the repository**
+1.  **Prérequis** : Python 3.9+
+2.  **Clonage et installation** :
     ```bash
     git clone https://github.com/etienne-hd/lbc-finder.git
     cd lbc-finder
-    ```
-2. **Install dependencies**
-    ```bash
     pip install -r requirements.txt
     ```
 
-## Configuration
-A [config.py](config.py) file is provided by default in the project, it contains a basic configuration.
-
-Inside this file, you must define a `CONFIG` variable, which is an list of `Search` objects.
-
-Each `Search` object should be configured with the rules for the ads you want to track.
-
-For example, if you want to track ads for a **Porsche 944** priced between 0€ and 25,000€ anywhere in France:
-```python
-from model import Search, Parameters
-
-Search(
-    name="Porsche 944",
-    parameters=Parameters(
-        text="Porsche 944",
-        category=lbc.Category.VEHICULES_VOITURES,
-        price=[0, 25_000]
-    ),
-    delay=60 * 5, # Every 5 minutes
-    handler=handle,
-    proxy=None
-)
+### Dashboard Web 📊
+Pour une expérience visuelle premium, lancez le dashboard :
+```bash
+python app.py
 ```
-### Name
-A descriptive label for the Search.
+Puis ouvrez `http://127.0.0.1:5000` dans votre navigateur.
 
-It has no impact on the actual query, it’s only used to identify the search.
-
-### Parameters
-
-All available parameters are documented in the [lbc](https://github.com/etienne-hd/lbc) repository.
-
-### Delay
-
-The time interval between each search.
-
-### Handler
-
-This function is called whenever a new ad appears.
-It must accept two parameters:
-
-* the `Ad` object
-* the name (label) of the search (e.g. **"Porsche 944"**)
-
-```python
-def handle(ad: lbc.Ad, search_name: str) -> None:
-    ...
-```
-You can find example handlers in the [examples](examples/) folder.
-
-### Proxy
-
-You can configure a proxy, here is an example:
-
-```python
-from lbc import Proxy
-from model import Search
-
-proxy = Proxy(
-    host="127.0.0.1",
-    port=9444,
-    username="etienne",
-    password="123456"
-)
-
-Search(
-    name=...,
-    parameters=...,
-    delay=...,
-    handler=...,
-    proxy=proxy
-)
-```
-
-## Usage
-To run **lbc-finder**, simply start the `main.py` file:
+Lancez simplement le menu principal :
 ```bash
 python main.py
 ```
 
-## License
+### Menu Interactif :
+1.  **Recherche rapide** : Pour un check instantané.
+2.  **Lancer une veille** : Active la surveillance continue (NLP).
+3.  **Analyser (Top 10)** : Trie les meilleures offres en base.
+4.  **Générer résumés IA** : Envoie les nouvelles annonces à l'analyseur IA.
+5.  **Consulter les annonces** : Parcourez votre historique sauvegardé.
 
-This project is licensed under the MIT License.
+## 📖 Documentation
 
-## Support
+Consultez le dossier `/documentation` pour plus de détails :
+- [Guide Utilisateur](documentation/GUIDE_UTILISATEUR.md)
+- [Mémo Technique (Architecture)](documentation/AI_TECH_MEMO.md)
 
-<a href="https://www.buymeacoffee.com/etienneh" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+## ⚖️ Avertissement
 
-You can contact me via [Telegram](https://t.me/etienne_hd) or [Discord](https://discord.com/users/1153975318990827552) if you need help with scraping services or want to write a library.
+*lbc-finder n'est pas affilié à, approuvé par, ou associé de quelque manière que ce soit à Leboncoin. L'utilisation de cet outil se fait à vos propres risques, conformément aux conditions d'utilisation du site cible.*
+
+---
+*Développé avec ❤️ pour simplifier vos recherches.*

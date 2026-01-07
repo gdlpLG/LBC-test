@@ -35,17 +35,28 @@ def parse_price(text: str) -> Tuple[Optional[int], Optional[int]]:
     return price_min, price_max
 
 def parse_location(text: str) -> Optional[str]:
-    """Extracts location from text (e.g., 'à Bordeaux', 'sur Paris')."""
-    match = re.search(r"\s(?:à|sur|vers|près de|dans la ville de)\s+([A-Z][a-zA-Z\s'-]+?)(?:,|$|\s+pour|\s+avec)", text)
+    """Extracts location from text (e.g., 'à Bordeaux', 'sur Paris', 'dans le secteur de Lyon')."""
+    # Expanded list of indicators and support for lowercase city names
+    match = re.search(r"\s(?:à|sur|vers|près de|dans la ville de|dans|secteur|proche|aux alentours de)\s+([a-zA-Z\xC0-\xFF][a-zA-Z\s\xC0-\xFF'-]+?)(?:,|$|\s+pour|\s+avec|\s+budget|\s+moins|\+|plus)", text, re.IGNORECASE)
     if match:
-        return match.group(1).strip()
+        return match.group(1).strip().capitalize()
     return None
 
+def parse_radius(text: str) -> int:
+    """Extracts radius in km from text (e.g., '+20km', 'rayon de 10'). Defaults to 10."""
+    match = re.search(r"(?:\+|rayon de|à|autour de)?\s*(\d+)\s*(?:km|kilomètres)", text, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+    return 10 # Default LBC radius
+
 def clean_search_text(text: str, location: Optional[str]) -> str:
-    """Removes location and price phrases to get the core search query."""
+    """Removes location, price and radius phrases to get the core search query."""
     core_text = text
     if location:
-        core_text = re.sub(r"\s(?:à|sur|vers|près de|dans la ville de)\s+" + re.escape(location), "", core_text, flags=re.IGNORECASE)
+        core_text = re.sub(r"\s(?:à|sur|vers|près de|dans la ville de|dans|secteur|proche|aux alentours de)\s+" + re.escape(location), "", core_text, flags=re.IGNORECASE)
+    
+    # Remove radius phrases
+    core_text = re.sub(r"(?:\+|rayon de)?\s*\d+\s*(?:km|kilomètres)", "", core_text, flags=re.IGNORECASE)
     
     # Remove all price-related phrases
     core_text = re.sub(r"(entre|de|moins de|budget max(?:imum)? de?|jusqu'à|pas plus de|à partir de|minimum de?|min de)\s+(\d+[\s']?\d*)\s*(k)?(?:euros|€)?(?:\s*(et|à)\s*\d+[\s']?\d*\s*(k)?(?:euros|€)?)?", "", core_text, flags=re.IGNORECASE)
@@ -63,11 +74,13 @@ def parse_sentence(user_input: str) -> Dict[str, Any]:
     """
     price_min, price_max = parse_price(user_input)
     location = parse_location(user_input)
+    radius = parse_radius(user_input)
     search_text = clean_search_text(user_input, location)
 
     return {
         "text": search_text,
         "location": location,
+        "radius": radius,
         "price_min": price_min,
         "price_max": price_max
     }

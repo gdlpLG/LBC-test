@@ -1,5 +1,7 @@
 # lbc-finder
 id.json
+leboncoin_ads.db
+*.db
 logs/
 
 # Byte-compiled / optimized / DLL files

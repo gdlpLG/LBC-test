@@ -12,6 +12,7 @@ def initialize_db():
     """
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
+        # Table des annonces
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ads (
                 id TEXT PRIMARY KEY,
@@ -22,14 +23,38 @@ def initialize_db():
                 date TEXT,
                 url TEXT UNIQUE,
                 description TEXT,
-                ai_summary TEXT
+                ai_summary TEXT,
+                image_url TEXT,
+                is_pro INTEGER DEFAULT 0
             )
         ''')
-        try:
-            cursor.execute("SELECT ai_summary FROM ads LIMIT 1")
-        except sqlite3.OperationalError:
-            cursor.execute("ALTER TABLE ads ADD COLUMN ai_summary TEXT")
+        # Table des veilles (Searches)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS searches (
+                name TEXT PRIMARY KEY,
+                query_text TEXT NOT NULL,
+                city TEXT,
+                radius INTEGER DEFAULT 10,
+                lat REAL,
+                lng REAL,
+                zip_code TEXT,
+                price_min REAL,
+                price_max REAL,
+                category TEXT,
+                last_run TEXT,
+                is_active INTEGER DEFAULT 1
+            )
+        ''')
         conn.commit()
+
+        # Migrations (ensure columns exist if table was already there)
+        try:
+            cursor.execute("SELECT lat FROM searches LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE searches ADD COLUMN lat REAL")
+            cursor.execute("ALTER TABLE searches ADD COLUMN lng REAL")
+            cursor.execute("ALTER TABLE searches ADD COLUMN zip_code TEXT")
+            conn.commit()
 
 def add_ad(ad_data: Dict[str, Any]):
     """
@@ -39,8 +64,8 @@ def add_ad(ad_data: Dict[str, Any]):
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO ads (id, search_name, title, price, location, date, url, description, ai_summary)
-                VALUES (:id, :search_name, :title, :price, :location, :date, :url, :description, :ai_summary)
+                INSERT INTO ads (id, search_name, title, price, location, date, url, description, ai_summary, image_url, is_pro)
+                VALUES (:id, :search_name, :title, :price, :location, :date, :url, :description, :ai_summary, :image_url, :is_pro)
             ''', ad_data)
             conn.commit()
         return True
@@ -104,5 +129,47 @@ def get_all_ads() -> List[Dict[str, Any]]:
         print(f"[Database Error] Failed to get all ads: {e}")
         return []
 
+# --- Gestion des veilles (Searches) ---
+
+def save_search(search_data: Dict[str, Any]):
+    """Saves or updates a search configuration."""
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR REPLACE INTO searches (name, query_text, city, radius, lat, lng, zip_code, price_min, price_max, category, last_run, is_active)
+                VALUES (:name, :query_text, :city, :radius, :lat, :lng, :zip_code, :price_min, :price_max, :category, :last_run, :is_active)
+            ''', search_data)
+            conn.commit()
+        return True
+    except Exception as e:
+        print(f"[Database Error] Failed to save search: {e}")
+        return False
+
+def get_active_searches() -> List[Dict[str, Any]]:
+    """Retrieves all active search configurations."""
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM searches WHERE is_active = 1')
+            return [dict(row) for row in cursor.fetchall()]
+    except Exception as e:
+        print(f"[Database Error] Failed to get searches: {e}")
+        return []
+
+def delete_search(name: str):
+    """Deletes a search configuration."""
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM searches WHERE name = ?', (name,))
+            conn.commit()
+        return True
+    except Exception as e:
+        print(f"[Database Error] Failed to delete search: {e}")
+        return False
+
 # Initialize or update the database
 initialize_db()
+```

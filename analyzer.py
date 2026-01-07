@@ -1,80 +1,135 @@
 '''
-This module provides AI-powered analysis for Leboncoin ads.
+This module provides AI-powered analysis for Leboncoin ads using Google Gemini.
 '''
-from database import get_all_ads
+import os
+import json
+import google.generativeai as genai
 from datetime import datetime
 from typing import List, Dict, Any
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Configure Gemini
+api_key = os.getenv("GEMINI_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-2.5-flash-lite')
+else:
+    model = None
 
 def generate_batch_summaries(ads: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     """
-    Generates summaries for a list of ads in a single batch call.
-    This simulates one large, efficient API call to a language model.
-
-    Args:
-        ads: A list of ad dictionaries, each requiring a summary.
-
-    Returns:
-        A list of dictionaries, each containing the 'id' of the ad and its 'summary'.
+    Generates summaries for a list of ads using Gemini.
     """
-    print(f"\nPréparation d'un prompt unique pour résumer {len(ads)} annonce(s) en un seul appel IA...")
+    if not model:
+        print("[Erreur IA] GEMINI_API_KEY non trouvée. Veuillez configurer votre fichier .env")
+        return []
 
-    # --- Prompt Engineering ---
-    # We create a single, large prompt asking the LLM to process all ads at once.
-    # Each ad is clearly delimited.
-    prompt = "Je vais te fournir une liste d'annonces au format JSON. Pour chaque annonce, génère un résumé concis en extrayant les points forts, les points faibles potentiels et les caractéristiques clés. Réponds avec une liste JSON où chaque objet contient l'ID de l'annonce et le résumé que tu as généré.\n\n" \
-             "Annonces à traiter:\n["
+    print(f"\nAppel à Gemini pour résumer {len(ads)} annonce(s)...")
+
+    # Construct the JSON prompt
+    ads_data = [{"id": ad['id'], "titre": ad['title'], "description": ad['description'][:1000]} for ad in ads]
     
-    for ad in ads:
-        prompt += f"{{ \"id\": \"{ad['id']}\", \"titre\": \"{ad['title']}\", \"description\": \"{ad['description'].replace('"' , '''''')}\" }},"
+    prompt = f"""
+    Tu es un assistant expert en analyse d'annonces Leboncoin.
+    Pour chaque annonce dans la liste JSON ci-dessous, génère un résumé très concis (2 phrases max).
+    Extrais : 
+    1. Les points forts (état, options).
+    2. Les points faibles ou alertes (travaux, défauts).
+    3. Les caractéristiques clés.
+
+    Réponds UNIQUEMENT sous forme de liste JSON d'objets contenant "id" et "summary".
+    Format : [{{"id": "...", "summary": "..."}}, ...]
+
+    Annonces :
+    {json.dumps(ads_data, ensure_ascii=False)}
+    """
+
+    try:
+        response = model.generate_content(prompt)
+        # Clean response text in case LLM adds markdown backticks
+        text_response = response.text.replace('```json', '').replace('```', '').strip()
+        summaries = json.loads(text_response)
+        print(f"✅ {len(summaries)} résumés générés avec succès.")
+        return summaries
+    except Exception as e:
+        print(f"❌ Erreur lors de l'appel Gemini : {e}")
+        return []
+
+def calculate_score(ad: Dict[str, Any], search_text: str, ideal_price: float) -> float:
+    """
+    Calcule un score de pertinence (0-10) basé sur le prix et le titre.
+    """
+    score = 5.0 # Base score
     
-    prompt = prompt.rstrip(',') + "]"
+    # 1. Analyse du prix
+    try:
+        price = float(ad.get('price', 0))
+        if price > 0:
+            diff = abs(price - ideal_price) / ideal_price
+            if price <= ideal_price:
+                score += (1 - diff) * 4 # Bonus si moins cher
+            else:
+                score -= diff * 5 # Malus si plus cher
+    except: pass
 
-    # In a real scenario, you would send this `prompt` to the Gemini API.
-    # Here, we simulate the response for demonstration purposes.
-    print("--- PROMPT SIMULÉ ENVOYÉ À L'IA --- (ceci n'est pas un vrai appel API)")
-    print(prompt[:500] + "...") # Print a snippet of the large prompt
-    print("-------------------------------------")
+    # 2. Analyse du titre
+    if search_text.lower() in ad.get('title', '').lower():
+        score += 2
     
-    # --- Simulation of the LLM's response ---
-    # The LLM would return a JSON string, which we would parse.
-    # For this simulation, we generate summaries based on keywords like before,
-    # but we format it as if the LLM returned it for all ads at once.
-    
-    simulated_responses = []
-    for ad in ads:
-        title = ad['title']
-        description = ad['description']
-        full_text = (title + " " + description).lower()
-        
-        pos_keywords = ["excellent état", "comme neuf", "rénové", "faible kilométrage", "lumineux"]
-        neg_keywords = ["à rénover", "prévoir travaux", "vendu en l'état", "rayures", "problème moteur"]
-        feature_keywords = ["garage", "parking", "balcon", "terrasse", "jardin", "piscine", "clim"]
-
-        summary_parts = []
-        pos = [k.capitalize() for k in pos_keywords if k in full_text]
-        neg = [k.capitalize() for k in neg_keywords if k in full_text]
-        feat = [k.capitalize() for k in feature_keywords if k in full_text]
-
-        if pos: summary_parts.append(f"Points forts: {', '.join(pos)}")
-        if neg: summary_parts.append(f"Points faibles: {', '.join(neg)}")
-        if feat: summary_parts.append(f"Caractéristiques: {', '.join(feat)}")
-
-        summary = ". ".join(summary_parts) + "."
-        if not summary_parts:
-            summary = "Résumé non généré (pas de mot-clé pertinent trouvé)."
-
-        simulated_responses.append({
-            "id": ad['id'],
-            "summary": summary
-        })
-
-    print(f"\nSimulation de réponse de l'IA reçue pour {len(simulated_responses)} annonces.")
-    return simulated_responses
-
-def calculate_score(ad: dict, search_text: str, ideal_price: float) -> float:
-    # This function remains the same
-    pass # ...
+    return max(0, min(10, round(score, 1)))
 
 def analyze_results(search_text: str, ideal_price: float):
-    # This function remains the same
-    pass # ...
+    """
+    Analyse les annonces en base et affiche le Top 10 des meilleures affaires.
+    """
+    from database import get_all_ads
+    ads = get_all_ads()
+    
+    scored_ads = []
+    for ad in ads:
+        if search_text.lower() in ad['title'].lower() or search_text.lower() in ad['description'].lower():
+            ad['score'] = calculate_score(ad, search_text, ideal_price)
+            scored_ads.append(ad)
+    
+    scored_ads.sort(key=lambda x: x['score'], reverse=True)
+    
+    print(f"\n--- Top 10 des annonces pour '{search_text}' (Prix idéal: {ideal_price}€) ---")
+    if not scored_ads:
+        print("Aucune annonce correspondante trouvée.")
+        return
+
+    for i, ad in enumerate(scored_ads[:10]):
+        print(f"#{i+1} [Score: {ad['score']}/10] {ad['title']} - {ad['price']}€")
+        print(f"   URL: {ad['url']}")
+        print(f"   Résumé IA: {ad.get('ai_summary') or 'Non disponible'}")
+        print("-" * 50)
+
+def get_market_stats(query_text: str) -> Dict[str, Any]:
+    """
+    Calcule les statistiques du marché basées sur les annonces stockées.
+    """
+    from database import get_all_ads
+    ads = get_all_ads()
+    
+    # Filtrage par mot-clé (simple pour le moment)
+    prices = [float(ad['price']) for ad in ads 
+              if ad['price'] and (query_text.lower() in ad['title'].lower() or query_text.lower() in ad['description'].lower())]
+    
+    if not prices:
+        return {"count": 0, "avg": 0, "median": 0, "min": 0, "max": 0}
+    
+    prices.sort()
+    count = len(prices)
+    avg = sum(prices) / count
+    median = prices[count // 2] if count % 2 != 0 else (prices[count // 2 - 1] + prices[count // 2]) / 2
+    
+    return {
+        "count": count,
+        "avg": round(avg, 2),
+        "median": round(median, 2),
+        "min": min(prices),
+        "max": max(prices)
+    }

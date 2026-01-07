@@ -27,7 +27,9 @@ def handle(ad: lbc.Ad, search_name: str):
         'date': str(ad.index_date),
         'url': ad.url,
         'description': ' '.join(ad.body.splitlines()),
-        'ai_summary': None # Save with a null summary
+        'ai_summary': None,
+        'image_url': ad.images[0] if hasattr(ad, 'images') and ad.images else None,
+        'is_pro': 1 if getattr(ad, 'is_pro', False) else 0
     }
     
     # The add_ad function will need to be updated to handle this

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LBC Finder | Dashboard Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FF6E14;
+            /* LBC Orange */
+            --secondary: #1A1A1A;
+            --accent: #4183D7;
+            /* Blue like LBC links */
+            --bg: #F5F6F7;
+            /* LBC Light Background */
+            --card-bg: #FFFFFF;
+            --border: #E6E6E6;
+            --text-dark: #1A1A1A;
+            --text-muted: #707070;
+        }
+
+        body.dark-theme {
+            --bg: #121212;
+            --card-bg: #1E1E1E;
+            --border: #333333;
+            --text-dark: #E0E0E0;
+            --text-muted: #A0A0A0;
+            --secondary: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-dark);
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* --- Header --- */
+        header {
+            background: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+
+        /* --- Stats Row --- */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--secondary);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        /* --- Main Content --- */
+        main {
+            padding: 0 2rem 4rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.7rem 1.2rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-ai {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-ai:hover {
+            opacity: 0.85;
+        }
+
+        /* --- Ads Grid --- */
+        .ads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .ad-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+
+        .ad-card:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Image Wrapper */
+        .ad-image-container {
+            width: 100%;
+            height: 180px;
+            background: #e2e2e2;
+            position: relative;
+        }
+
+        .ad-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .ad-content {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex-grow: 1;
+        }
+
+        .ad-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 4px;
+            height: 2.4em;
+            /* Max 2 lines */
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .ad-price {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--secondary);
+            margin-top: auto;
+        }
+
+        .ad-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            margin-top: 8px;
+        }
+
+        .ai-summary {
+            background: #FEE2D5;
+            color: #D35400;
+            padding: 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            line-height: 1.3;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .badge-pro {
+            background: white;
+            color: var(--secondary);
+            border: 1px solid var(--border);
+            padding: 2px 6px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            border-radius: 4px;
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+        }
+
+        .btn-link {
+            display: block;
+            text-decoration: none;
+            color: var(--secondary);
+            border: 1px solid var(--secondary);
+            text-align: center;
+            padding: 0.5rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-link:hover {
+            background: var(--secondary);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">Leboncoin <span style="font-weight: 300; opacity: 0.5;">Finder</span></div>
+        <div class="header-actions" style="display:flex; gap:10px">
+            <button onclick="toggleTheme()"
+                style="background:var(--secondary); color:var(--bg); border-radius:50%; width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center">🌓</button>
+            <button class="btn-primary" onclick="loadData()">Rafraîchir</button>
+        </div>
+    </header>
+
+    <div class="stats-container">
+        <div class="stat-card">
+            <div id="stat-total" class="stat-value">0</div>
+            <div class="stat-label">Annonces</div>
+        </div>
+        <div class="stat-card">
+            <div id="stat-pending" class="stat-value">0</div>
+            <div class="stat-label">Attente IA</div>
+        </div>
+        <div class="stat-card">
+            <div id="stat-avg" class="stat-value">0€</div>
+            <div class="stat-label">Moyenne</div>
+        </div>
+    </div>
+
+    <main>
+        <!-- --- Search Management --- -->
+        <section class="search-management"
+            style="background:#fff; padding:2rem; border-radius:12px; margin-bottom:2rem; border:1px solid var(--border)">
+            <h3 style="margin-bottom:1rem">📡 Gestion des Veilles Automatiques</h3>
+            <div style="display:flex; gap:1rem; margin-bottom:1.5rem">
+                <input type="text" id="new-watch-text" placeholder="Ex: Macbook Pro M1 à Paris +20km"
+                    style="flex:1; padding:0.8rem; border-radius:8px; border:1px solid var(--border)">
+                <button class="btn-primary" onclick="addWatch()">Ajouter une Veille</button>
+            </div>
+            <div id="active-watches" style="display:flex; flex-wrap:wrap; gap:0.5rem">
+                <!-- Watches badges here -->
+            </div>
+        </section>
+
+        <!-- --- Filters & Market --- -->
+        <div class="controls" style="justify-content: space-between;">
+            <div style="display:flex; gap:1rem; align-items: center;">
+                <select id="sort-filter" onchange="loadData()"
+                    style="padding:0.6rem; border-radius:8px; border:1px solid var(--border)">
+                    <option value="date-desc">Plus récent</option>
+                    <option value="price-asc">Prix croissant</option>
+                    <option value="price-desc">Prix décroissant</option>
+                </select>
+                <button id="btn-analyze" class="btn-ai" onclick="runAnalysis()">
+                    <div class="loader" id="ai-loader" style="margin-right:8px"></div>
+                    🎯 Analyse IA par Lot
+                </button>
+            </div>
+            <div id="market-stats-brief"
+                style="font-size: 0.85rem; background: #fff; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--border); display:none">
+                <!-- Market stats here -->
+            </div>
+        </div>
+
+        <div id="ads-grid" class="ads-grid">
+            <!-- Ads injected here -->
+        </div>
+    </main>
+
+    <div id="notification"></div>
+
+    <script>
+        async function loadData() {
+            // 1. Stats globales
+            const statsResp = await fetch('/api/stats');
+            const stats = await statsResp.json();
+            document.getElementById('stat-total').innerText = stats.total_ads;
+            document.getElementById('stat-pending').innerText = stats.pending_ai;
+            document.getElementById('stat-avg').innerText = Math.round(stats.avg_price) + '€';
+
+            // 2. Liste des veilles
+            loadWatches();
+
+            // 3. Annonces
+            const adsResp = await fetch('/api/ads');
+            let ads = await adsResp.json();
+
+            // Tri
+            const sortVal = document.getElementById('sort-filter').value;
+            if (sortVal === 'price-asc') ads.sort((a, b) => (a.price || 0) - (b.price || 0));
+            else if (sortVal === 'price-desc') ads.sort((a, b) => (b.price || 0) - (a.price || 0));
+            else ads.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const grid = document.getElementById('ads-grid');
+            grid.innerHTML = '';
+
+            ads.forEach((ad) => {
+                const card = document.createElement('div');
+                card.className = 'ad-card';
+
+                const imgUrl = ad.image_url || 'https://via.placeholder.com/300x180?text=Pas+d+image';
+                const proBadge = ad.is_pro ? '<div class="badge-pro">PRO</div>' : '';
+                const summaryHtml = ad.ai_summary
+                    ? `<div class="ai-summary">🚀 ${ad.ai_summary}</div>`
+                    : '';
+
+                // Calcul simple du deal (pour la démo, on compare à la moyenne globale si pas de stats précises)
+                const isGoodDeal = ad.price && ad.price < stats.avg_price * 0.9;
+                const dealBadge = isGoodDeal ? `<div style="background:#10B981; color:white; padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:800; margin-top:5px; display:inline-block">🔥 BONNE AFFAIRE</div>` : '';
+
+                card.innerHTML = `
+                    <div class="ad-image-container">
+                        <img src="${imgUrl}" class="ad-image" onerror="this.src='https://via.placeholder.com/300x180?text=Image+Invalide'">
+                        ${proBadge}
+                    </div>
+                    <div class="ad-content">
+                        <div class="ad-title">${ad.title}</div>
+                        <div style="display:flex; align-items:center; gap:10px">
+                            <div class="ad-price">${ad.price ? ad.price.toLocaleString() + ' €' : 'Prix ?'}</div>
+                            ${dealBadge}
+                        </div>
+                        <div class="ad-meta">
+                            <span>📍 ${ad.location}</span>
+                            <span>🕒 ${new Date(ad.date).toLocaleDateString()}</span>
+                        </div>
+                        ${summaryHtml}
+                        <a href="${ad.url}" target="_blank" class="btn-link">Voir l'annonce</a>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function loadWatches() {
+            const resp = await fetch('/api/searches');
+            const searches = await resp.json();
+            const container = document.getElementById('active-watches');
+            container.innerHTML = '';
+
+            searches.forEach(s => {
+                const badge = document.createElement('div');
+                badge.style = "background:var(--bg); border:1px solid var(--border); padding:0.4rem 1rem; border-radius:20px; font-size:0.8rem; display:flex; align-items:center; gap:0.5rem";
+                badge.innerHTML = `
+                    <span>📡 ${s.name} (${s.radius}km)</span>
+                    <button onclick="deleteWatch('${s.name}')" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold; padding:2px">×</button>
+                `;
+                container.appendChild(badge);
+            });
+        }
+
+        async function addWatch() {
+            const sentence = document.getElementById('new-watch-text').value;
+            if (!sentence) return;
+
+            const resp = await fetch('/api/searches', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sentence })
+            });
+
+            if (resp.ok) {
+                document.getElementById('new-watch-text').value = '';
+                showNotify("Veille ajoutée avec succès !");
+                loadData();
+            }
+        }
+
+        async function deleteWatch(name) {
+            if (!confirm("Supprimer cette veille ?")) return;
+            const resp = await fetch(`/api/searches/${encodeURIComponent(name)}`, { method: 'DELETE' });
+            if (resp.ok) {
+                showNotify("Veille supprimée.");
+                loadData();
+            }
+        }
+
+        async function runAnalysis() {
+            const btn = document.getElementById('btn-analyze');
+            const loader = document.getElementById('ai-loader');
+
+            btn.disabled = true;
+            loader.style.display = 'block';
+
+            try {
+                const resp = await fetch('/api/analyze', { method: 'POST' });
+                const result = await resp.json();
+
+                showNotify(result.message);
+                if (result.status === 'success') {
+                    loadData();
+                }
+            } catch (e) {
+                showNotify("Erreur lors de l'analyse.");
+            } finally {
+                btn.disabled = false;
+                loader.style.display = 'none';
+            }
+        }
+
+        function showNotify(msg) {
+            const n = document.getElementById('notification');
+            n.innerText = msg;
+            n.classList.add('show');
+            setTimeout(() => n.classList.remove('show'), 3000);
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+        }
+
+        if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-theme');
+
+        // Initial Load
+        loadData();
+    </script>
+</body>
+
+</html>
+```
