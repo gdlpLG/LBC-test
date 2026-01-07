@@ -29,7 +29,10 @@ def handle(ad: lbc.Ad, search_name: str):
         'description': ' '.join(ad.body.splitlines()),
         'ai_summary': None,
         'image_url': ad.images[0] if hasattr(ad, 'images') and ad.images else None,
-        'is_pro': 1 if getattr(ad, 'is_pro', False) else 0
+        'is_pro': 1 if getattr(ad, 'is_pro', False) else 0,
+        'lat': ad.location.lat if hasattr(ad.location, 'lat') else None,
+        'lng': ad.location.lng if hasattr(ad.location, 'lng') else None,
+        'category': ad.category.name if hasattr(ad, 'category') and ad.category else None
     }
     
     # The add_ad function will need to be updated to handle this

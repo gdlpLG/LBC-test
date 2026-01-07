@@ -19,7 +19,7 @@ if api_key:
 else:
     model = None
 
-def generate_batch_summaries(ads: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+def generate_batch_summaries(ads: List[Dict[str, Any]], user_context: str = None) -> List[Dict[str, Any]]:
     """
     Generates summaries for a list of ads using Gemini.
     """
@@ -34,14 +34,21 @@ def generate_batch_summaries(ads: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     
     prompt = f"""
     Tu es un assistant expert en analyse d'annonces Leboncoin.
+    CONTEXTE SPÉCIFIQUE DE RECHERCHE : {user_context or "Analyse générale de qualité/prix."}
+
     Pour chaque annonce dans la liste JSON ci-dessous, génère un résumé très concis (2 phrases max).
     Extrais : 
     1. Les points forts (état, options).
     2. Les points faibles ou alertes (travaux, défauts).
     3. Les caractéristiques clés.
 
-    Réponds UNIQUEMENT sous forme de liste JSON d'objets contenant "id" et "summary".
-    Format : [{{"id": "...", "summary": "..."}}, ...]
+    Réponds UNIQUEMENT sous forme de liste JSON d'objets contenant "id", "summary", "score" et "tips".
+    - "id": l'identifiant de l'annonce
+    - "summary": un résumé concis (points forts/faibles)
+    - "score": une note de 1 à 10 sur la qualité de l'affaire et la clarté de l'annonce
+    - "tips": un conseil court pour négocier ou une question à poser au vendeur
+
+    Format : [{{"id": "...", "summary": "...", "score": 8.5, "tips": "..."}}, ...]
 
     Annonces :
     {json.dumps(ads_data, ensure_ascii=False)}
@@ -108,9 +115,7 @@ def analyze_results(search_text: str, ideal_price: float):
         print("-" * 50)
 
 def get_market_stats(query_text: str) -> Dict[str, Any]:
-    """
-    Calcule les statistiques du marché basées sur les annonces stockées.
-    """
+    # ... existing code ...
     from database import get_all_ads
     ads = get_all_ads()
     
@@ -133,3 +138,76 @@ def get_market_stats(query_text: str) -> Dict[str, Any]:
         "min": min(prices),
         "max": max(prices)
     }
+
+def compare_and_recommend(ads: List[Dict[str, Any]]) -> str:
+    """
+    Asks Gemini to compare a list of ads and recommend the best one(s).
+    """
+    if not model: return "IA non configurée."
+    
+    # Prepare compact data to save tokens
+    comparison_data = []
+    for ad in ads:
+        comparison_data.append({
+            "titre": ad['title'],
+            "prix": ad['price'],
+            "description": ad.get('description', ''), # We use the full description here as context is large
+            "score_precedent": ad.get('ai_score', 'N/A')
+        })
+
+    prompt = f"""
+    En tant qu'expert en achat d'occasion et personal shopper, analyse en profondeur ces {len(ads)} annonces.
+    Puisque j'ai un large contexte de tokens, examine chaque détail des descriptions pour déceler les vices cachés ou les opportunités exceptionnelles.
+
+    Critères d'analyse :
+    1. État réel perçu à travers la description.
+    2. Cohérence du prix par rapport à l'état.
+    3. Fiabilité du vendeur (pro vs particulier, clarté du texte).
+    4. Équipements ou accessoires inclus qui justifient le prix.
+
+    Structure de la réponse :
+    - 🏆 LE MEILLEUR CHOIX : Nom de l'objet + Pourquoi c'est le gagnant indiscutable.
+    - 🥈 L'ALTERNATIVE : Pour quel profil d'acheteur elle serait intéressante.
+    - 🚩 ALERTES : Points de vigilance spécifiques sur les autres annonces.
+    - 💬 STRATÉGIE : Comment aborder le vendeur du gagnant.
+
+    Données :
+    {json.dumps(comparison_data, ensure_ascii=False)}
+
+    Réponds en Markdown avec un ton expert et assuré.
+    """
+
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"Erreur lors de la comparaison : {e}"
+
+def build_ai_instructions(user_goal: str) -> str:
+    """
+    Acts as a consultant to help the user build a complex 'Gem' (AI Instruction).
+    """
+    if not model: return "IA non configurée."
+
+    prompt = f"""
+    Tu es un expert en 'Prompt Engineering' et en achat d'occasion.
+    L'utilisateur veut créer une veille Leboncoin avec l'objectif suivant : "{user_goal}"
+    
+    Ta mission est de rédiger une "Instruction de Personal Shopper" ultra-détaillée que le programme utilisera pour analyser chaque annonce à sa place.
+    
+    L'instruction doit inclure :
+    1. Un rôle précis (ex: "Tu es un mécanicien expert en voitures anciennes").
+    2. Une liste de points de contrôle techniques basés sur l'objectif.
+    3. Les "Red Flags" (alertes) spécifiques à cet objet.
+    4. Comment évaluer le prix par rapport à l'état.
+
+    Réponds UNIQUEMENT par le texte de l'instruction prête à l'emploi. 
+    Soit professionnel, technique et exigeant. Ne commence pas par "Voici l'instruction", donne directement le contenu.
+    """
+
+    try:
+        response = model.generate_content(prompt)
+        text = response.text.replace('```markdown', '').replace('```', '').strip()
+        return text
+    except Exception as e:
+        return f"Erreur lors de la construction : {e}"

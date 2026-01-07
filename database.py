@@ -24,8 +24,13 @@ def initialize_db():
                 url TEXT UNIQUE,
                 description TEXT,
                 ai_summary TEXT,
+                ai_score REAL,
+                ai_tips TEXT,
                 image_url TEXT,
-                is_pro INTEGER DEFAULT 0
+                is_pro INTEGER DEFAULT 0,
+                lat REAL,
+                lng REAL,
+                category TEXT
             )
         ''')
         # Table des veilles (Searches)
@@ -42,12 +47,29 @@ def initialize_db():
                 price_max REAL,
                 category TEXT,
                 last_run TEXT,
-                is_active INTEGER DEFAULT 1
+                is_active INTEGER DEFAULT 1,
+                ai_context TEXT
             )
         ''')
         conn.commit()
 
+        try:
+            cursor.execute("SELECT ai_context FROM searches LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE searches ADD COLUMN ai_context TEXT")
+            conn.commit()
+
         # Migrations (ensure columns exist if table was already there)
+        try:
+            cursor.execute("SELECT ai_score FROM ads LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE ads ADD COLUMN ai_score REAL")
+            cursor.execute("ALTER TABLE ads ADD COLUMN ai_tips TEXT")
+            cursor.execute("ALTER TABLE ads ADD COLUMN lat REAL")
+            cursor.execute("ALTER TABLE ads ADD COLUMN lng REAL")
+            cursor.execute("ALTER TABLE ads ADD COLUMN category TEXT")
+            conn.commit()
+
         try:
             cursor.execute("SELECT lat FROM searches LIMIT 1")
         except sqlite3.OperationalError:
@@ -58,15 +80,35 @@ def initialize_db():
 
 def add_ad(ad_data: Dict[str, Any]):
     """
-    Inserts a new ad into the database. The summary can be None.
+    Inserts a new ad into the database. Robust with defaults.
     """
+    # Force defaults for missing keys to avoid SQL errors
+    defaults = {
+        'search_name': 'Unknown',
+        'title': 'No Title',
+        'price': 0,
+        'location': 'Unknown',
+        'date': '',
+        'url': '',
+        'description': '',
+        'ai_summary': None,
+        'ai_score': None,
+        'ai_tips': None,
+        'image_url': None,
+        'is_pro': 0,
+        'lat': None,
+        'lng': None,
+        'category': None
+    }
+    data = {**defaults, **ad_data}
+    
     try:
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO ads (id, search_name, title, price, location, date, url, description, ai_summary, image_url, is_pro)
-                VALUES (:id, :search_name, :title, :price, :location, :date, :url, :description, :ai_summary, :image_url, :is_pro)
-            ''', ad_data)
+                INSERT INTO ads (id, search_name, title, price, location, date, url, description, ai_summary, ai_score, ai_tips, image_url, is_pro, lat, lng, category)
+                VALUES (:id, :search_name, :title, :price, :location, :date, :url, :description, :ai_summary, :ai_score, :ai_tips, :image_url, :is_pro, :lat, :lng, :category)
+            ''', data)
             conn.commit()
         return True
     except sqlite3.IntegrityError:
@@ -99,7 +141,7 @@ def update_summaries_in_batch(summaries: List[Dict[str, str]]):
             cursor = conn.cursor()
             cursor.executemany('''
                 UPDATE ads
-                SET ai_summary = :summary
+                SET ai_summary = :summary, ai_score = :score, ai_tips = :tips
                 WHERE id = :id
             ''', summaries)
             conn.commit()
@@ -137,8 +179,8 @@ def save_search(search_data: Dict[str, Any]):
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT OR REPLACE INTO searches (name, query_text, city, radius, lat, lng, zip_code, price_min, price_max, category, last_run, is_active)
-                VALUES (:name, :query_text, :city, :radius, :lat, :lng, :zip_code, :price_min, :price_max, :category, :last_run, :is_active)
+                INSERT OR REPLACE INTO searches (name, query_text, city, radius, lat, lng, zip_code, price_min, price_max, category, last_run, is_active, ai_context)
+                VALUES (:name, :query_text, :city, :radius, :lat, :lng, :zip_code, :price_min, :price_max, :category, :last_run, :is_active, :ai_context)
             ''', search_data)
             conn.commit()
         return True
@@ -172,4 +214,3 @@ def delete_search(name: str):
 
 # Initialize or update the database
 initialize_db()
-```

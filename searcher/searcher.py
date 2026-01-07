@@ -13,6 +13,12 @@ class Searcher:
         self._searches: List[Search] = searches if isinstance(searches, list) else [searches]
         self._request_verify = request_verify
         self._id = ID()
+        self._user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
+        ]
 
     def _search(self, search: Search) -> None:
         client = Client(proxy=search.proxy, request_verify=self._request_verify)
@@ -28,7 +34,11 @@ class Searcher:
                     search.handler(ad, search.name)
             except:
                 logger.exception(f"An error occured.")
-            time.sleep(search.delay - (time.time() - before) if search.delay - (time.time() - before) > 0 else 0)
+            
+            # Randomized human-like delay (base delay + random offset)
+            actual_delay = search.delay + random.randint(-60, 180) 
+            wait_time = max(30, actual_delay - (time.time() - before))
+            time.sleep(wait_time)
 
     def start(self) -> bool:
         # Load from DB if no searches provided
@@ -62,4 +72,3 @@ class Searcher:
             logger.info(f"Started watch: {search.name}")
             time.sleep(5) 
         return True
-```

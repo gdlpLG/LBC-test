@@ -44,8 +44,11 @@ python main.py
 
 ## 📖 Documentation
 
-Consultez le dossier `/documentation` pour plus de détails :
-- [Guide Utilisateur](documentation/GUIDE_UTILISATEUR.md)
+Consultez le manuel complet pour apprendre à utiliser toutes les fonctionnalités :
+- [**Manuel d'Utilisation** (Complet)](MANUEL_UTILISATION.md) 📘
+
+D'autres documents techniques sont disponibles dans `/documentation` :
+- [Guide Utilisateur (Ancien)](documentation/GUIDE_UTILISATEUR.md)
 - [Mémo Technique (Architecture)](documentation/AI_TECH_MEMO.md)
 
 ## ⚖️ Avertissement

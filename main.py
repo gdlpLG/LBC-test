@@ -60,8 +60,21 @@ def run_quick_search():
     city = input(" Ville (laisser vide pour France entière) > ")
     
     try:
-        loc = [lbc.City.from_string(name=city)] if city else None
-        ads = lbc.search(text=text, locations=loc, limit=15, sort=lbc.Sort.NEWEST)
+        if city:
+            from utils import get_coordinates
+            coords = get_coordinates(city)
+            if coords:
+                lat, lng, zip_code = coords
+                loc = [lbc.City(lat=lat, lng=lng, city=city, radius=20000)] # 20km par défaut
+            else:
+                print(f" ⚠️ Ville '{city}' non trouvée. Recherche France entière.")
+                loc = None
+        else:
+            loc = None
+            
+        client = lbc.Client()
+        response = client.search(text=text, locations=loc, limit=15, sort=lbc.Sort.NEWEST)
+        ads = response.ads
         
         if not ads:
             print(" > Aucun résultat trouvé.")
@@ -69,7 +82,7 @@ def run_quick_search():
 
         print(f"\n--- {len(ads)} derniers résultats trouvés ---\n")
         for ad in ads:
-            print(f" 🕒 {ad.index_date.strftime('%H:%M')} | {ad.subject} | {ad.price}€")
+            print(f" 🕒 {ad.index_date} | {ad.subject} | {ad.price}€")
             print(f" 🔗 {ad.url}\n")
     except Exception as e:
         print(f" ❌ Erreur : {e}")
@@ -95,11 +108,20 @@ def run_nlp_watch():
         delay_seconds = random.randint(900, 1500)
         
         # Validation de la ville
-        try:
-            city_obj = lbc.City.from_string(name=criteria['location']) if criteria['location'] else None
-        except Exception:
-            print(f" ⚠️ Ville '{criteria['location']}' non reconnue. La recherche se fera sur toute la France.")
-            city_obj = None
+        city_obj = None
+        if criteria['location']:
+            from utils import get_coordinates
+            coords = get_coordinates(criteria['location'])
+            if coords:
+                lat, lng, zip_code = coords
+                city_obj = lbc.City(
+                    lat=lat, 
+                    lng=lng, 
+                    city=criteria['location'], 
+                    radius=criteria['radius'] * 1000 if criteria['radius'] else 10000
+                )
+            else:
+                print(f" ⚠️ Ville '{criteria['location']}' non reconnue. La recherche se fera sur toute la France.")
             
         params = Parameters(
             text=criteria['text'], 

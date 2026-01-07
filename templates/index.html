@@ -4,21 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LBC Finder | Dashboard Premium</title>
+    <title>LBC Finder | Recherche Intelligente</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
             --primary: #FF6E14;
             /* LBC Orange */
+            --primary-hover: #E85D00;
             --secondary: #1A1A1A;
-            --accent: #4183D7;
-            /* Blue like LBC links */
             --bg: #F5F6F7;
-            /* LBC Light Background */
             --card-bg: #FFFFFF;
             --border: #E6E6E6;
             --text-dark: #1A1A1A;
             --text-muted: #707070;
+            --success: #10B981;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         body.dark-theme {
@@ -44,14 +47,13 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* --- Header --- */
         header {
             background: white;
-            padding: 1rem 2rem;
+            padding: 0.8rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 0;
             z-index: 1000;
@@ -63,132 +65,354 @@
             color: var(--primary);
             text-transform: uppercase;
             letter-spacing: -1px;
+            cursor: pointer;
         }
 
-        /* --- Stats Row --- */
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            padding: 2rem;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 1rem;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--secondary);
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-top: 2px;
-        }
-
-        /* --- Main Content --- */
-        main {
-            padding: 0 2rem 4rem 2rem;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .controls {
+        /* --- Navigation Tabs --- */
+        .tabs {
             display: flex;
             gap: 1rem;
             margin-bottom: 2rem;
-            align-items: center;
-            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
         }
 
-        button {
-            padding: 0.7rem 1.2rem;
-            border-radius: 8px;
-            border: none;
+        .tab {
+            padding: 1rem 1.5rem;
             cursor: pointer;
-            font-weight: 700;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
             transition: all 0.2s;
-            font-size: 0.9rem;
         }
 
-        .btn-primary {
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        #map {
+            height: 600px;
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            z-index: 10;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        /* --- Selection & Compare --- */
+        .ad-card.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+
+        .compare-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--secondary);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 1500;
+            transition: transform 0.3s;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .compare-bar.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 2rem;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 20px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .modal-content .close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem 2rem 2rem;
+        }
+
+        /* --- Search Section --- */
+        .search-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .search-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        input,
+        select {
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.95rem;
+            background: #FAFAFA;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+        }
+
+        .multi-keywords {
+            grid-column: span 2;
+        }
+
+        .keyword-input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .keywords-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .keyword-tag {
+            background: #EEE;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .keyword-tag span {
+            cursor: pointer;
+            color: #888;
+            font-weight: bold;
+        }
+
+        .keyword-tag span:hover {
+            color: var(--primary);
+        }
+
+        /* --- Toggles --- */
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--primary);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        .btn-search {
             background: var(--primary);
             color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            width: 100%;
+            transition: transform 0.1s, opacity 0.2s;
         }
 
-        .btn-primary:hover {
+        .btn-search:hover {
             opacity: 0.9;
         }
 
-        .btn-ai {
-            background: var(--secondary);
-            color: white;
+        .btn-search:active {
+            transform: scale(0.98);
         }
 
-        .btn-ai:hover {
-            opacity: 0.85;
+        /* --- Results Area --- */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
         }
 
-        /* --- Ads Grid --- */
         .ads-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 1.5rem;
         }
 
         .ad-card {
             background: var(--card-bg);
-            border-radius: 12px;
+            border-radius: 16px;
+            overflow: hidden;
             border: 1px solid var(--border);
+            transition: box-shadow 0.2s, transform 0.2s;
+            cursor: pointer;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            transition: box-shadow 0.2s;
         }
 
         .ad-card:hover {
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            transform: translateY(-4px);
         }
 
-        /* Image Wrapper */
-        .ad-image-container {
+        .ad-img-box {
             width: 100%;
             height: 180px;
-            background: #e2e2e2;
+            background: #EEE;
             position: relative;
         }
 
-        .ad-image {
+        .ad-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
 
-        .ad-content {
+        .ad-info {
             padding: 1rem;
+            flex-grow: 1;
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            flex-grow: 1;
         }
 
         .ad-title {
-            font-size: 1rem;
             font-weight: 600;
-            color: var(--secondary);
-            margin-bottom: 4px;
-            height: 2.4em;
-            /* Max 2 lines */
+            font-size: 0.95rem;
+            line-height: 1.3;
+            margin-bottom: 8px;
+            height: 2.6em;
             overflow: hidden;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -196,61 +420,100 @@
         }
 
         .ad-price {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 800;
             color: var(--secondary);
-            margin-top: auto;
         }
 
         .ad-meta {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
+            margin-top: 10px;
             display: flex;
-            flex-direction: column;
-            margin-top: 8px;
+            justify-content: space-between;
         }
 
-        .ai-summary {
-            background: #FEE2D5;
-            color: #D35400;
-            padding: 0.6rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            line-height: 1.3;
-            margin-top: 10px;
-            font-weight: 500;
-        }
-
-        .badge-pro {
-            background: white;
-            color: var(--secondary);
-            border: 1px solid var(--border);
-            padding: 2px 6px;
-            font-size: 0.65rem;
-            font-weight: 800;
-            border-radius: 4px;
+        /* --- Selection Circle --- */
+        .select-check {
             position: absolute;
-            bottom: 8px;
-            left: 8px;
-        }
-
-        .btn-link {
-            display: block;
-            text-decoration: none;
-            color: var(--secondary);
-            border: 1px solid var(--secondary);
-            text-align: center;
-            padding: 0.5rem;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            margin-top: 10px;
+            top: 10px;
+            right: 10px;
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            cursor: pointer;
             transition: all 0.2s;
+            color: white;
+            font-weight: bold;
         }
 
-        .btn-link:hover {
+        .ad-card.selected .select-check {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .ad-card.selected .select-check::after {
+            content: "✓";
+        }
+
+        .ad-card.selected {
+            border-color: var(--primary);
+            background: #FFF9F5;
+        }
+
+        #notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
             background: var(--secondary);
             color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transform: translateY(100px);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 2000;
+        }
+
+        #notification.show {
+            transform: translateY(0);
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Tablet/Mobile fixes */
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .multi-keywords {
+                grid-column: span 1;
+            }
         }
     </style>
 </head>
@@ -258,197 +521,749 @@
 <body>
 
     <header>
-        <div class="logo">Leboncoin <span style="font-weight: 300; opacity: 0.5;">Finder</span></div>
-        <div class="header-actions" style="display:flex; gap:10px">
+        <div class="logo" onclick="location.reload()">Leboncoin <span>Finder</span></div>
+        <div style="display:flex; gap:15px; align-items:center">
+            <div class="loader" id="global-loader"></div>
+            <button class="btn-primary" style="padding: 0.5rem 1rem;" onclick="runBatchAnalysis()">🤖 Lancer Analyse
+                IA</button>
             <button onclick="toggleTheme()"
-                style="background:var(--secondary); color:var(--bg); border-radius:50%; width:40px; height:40px; padding:0; display:flex; align-items:center; justify-content:center">🌓</button>
-            <button class="btn-primary" onclick="loadData()">Rafraîchir</button>
+                style="background:none; border:none; font-size:1.4rem; cursor:pointer">🌓</button>
         </div>
     </header>
 
-    <div class="stats-container">
-        <div class="stat-card">
-            <div id="stat-total" class="stat-value">0</div>
-            <div class="stat-label">Annonces</div>
-        </div>
-        <div class="stat-card">
-            <div id="stat-pending" class="stat-value">0</div>
-            <div class="stat-label">Attente IA</div>
-        </div>
-        <div class="stat-card">
-            <div id="stat-avg" class="stat-value">0€</div>
-            <div class="stat-label">Moyenne</div>
-        </div>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('live')">🔍 Nouvelle Recherche</div>
+        <div class="tab" onclick="switchTab('watches')">📡 Mes Sessions de Veille</div>
     </div>
 
-    <main>
-        <!-- --- Search Management --- -->
-        <section class="search-management"
-            style="background:#fff; padding:2rem; border-radius:12px; margin-bottom:2rem; border:1px solid var(--border)">
-            <h3 style="margin-bottom:1rem">📡 Gestion des Veilles Automatiques</h3>
-            <div style="display:flex; gap:1rem; margin-bottom:1.5rem">
-                <input type="text" id="new-watch-text" placeholder="Ex: Macbook Pro M1 à Paris +20km"
-                    style="flex:1; padding:0.8rem; border-radius:8px; border:1px solid var(--border)">
-                <button class="btn-primary" onclick="addWatch()">Ajouter une Veille</button>
+    <div class="container">
+        <!-- --- VIEW 1: LIVE SEARCH --- -->
+        <section id="view-live" class="view-section active">
+            <section class="search-container">
+                <div class="search-title">🚀 Recherche Instantanée</div>
+
+                <div class="form-grid">
+                    <!-- Keywords -->
+                    <div class="form-group multi-keywords">
+                        <label>Mots-clés (plusieurs possibles)</label>
+                        <div class="keyword-input-wrapper">
+                            <input type="text" id="keyword-input" placeholder="Ajouter un mot-clé (ex: PS5, Xbox...)"
+                                onkeypress="if(event.key==='Enter') addKeyword()">
+                            <button onclick="addKeyword()"
+                                style="background:var(--secondary); color:white; border:none; padding:0 1.2rem; border-radius:8px; cursor:pointer; font-weight:bold">+</button>
+                        </div>
+                        <div class="keywords-list" id="keywords-list"></div>
+                    </div>
+
+                    <!-- Category -->
+                    <div class="form-group">
+                        <label>Catégorie</label>
+                        <select id="category-select">
+                            <option value="0">Toutes les catégories</option>
+                        </select>
+                    </div>
+
+                    <!-- Location Type -->
+                    <div class="form-group">
+                        <label>Localisation</label>
+                        <div style="display:flex; gap:10px">
+                            <select id="loc-type" style="flex:1" onchange="updateLocUI()">
+                                <option value="none">France Entière</option>
+                                <option value="city">Ville + Rayon</option>
+                                <option value="dept">Département</option>
+                                <option value="region">Région</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Location Value -->
+                    <div class="form-group" id="loc-val-group" style="display:none">
+                        <label id="loc-val-label">Valeur</label>
+                        <div style="display:flex; gap:10px">
+                            <input type="text" id="loc-city" placeholder="Nom de la ville" style="flex:2; display:none">
+                            <input type="number" id="loc-radius" placeholder="Km" style="flex:1; display:none"
+                                value="10">
+                            <select id="loc-select" style="flex:1; display:none"></select>
+                        </div>
+                    </div>
+
+                    <!-- Price Range -->
+                    <div class="form-group">
+                        <label>Prix (€)</label>
+                        <div style="display:flex; gap:10px">
+                            <input type="number" id="price-min" placeholder="Min" style="flex:1">
+                            <input type="number" id="price-max" placeholder="Max" style="flex:1">
+                        </div>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="form-group"
+                        style="flex-direction: row; gap: 20px; grid-column: span 1; align-items: center;">
+                        <label class="toggle-group">
+                            <span class="switch">
+                                <input type="checkbox" id="delivery-toggle">
+                                <span class="slider"></span>
+                            </span>
+                            <span>Livraison</span>
+                        </label>
+                    </div>
+
+                    <!-- Owner Type -->
+                    <div class="form-group">
+                        <label>Type de vendeur</label>
+                        <select id="owner-select">
+                            <option value="all">Tous</option>
+                            <option value="private">Particuliers</option>
+                            <option value="pro">Professionnels</option>
+                        </select>
+                    </div>
+
+                    <!-- Sort -->
+                    <div class="form-group">
+                        <label>Trier par</label>
+                        <select id="sort-select">
+                            <option value="newest">Plus récent</option>
+                            <option value="relevance">Pertinence</option>
+                        </select>
+                    </div>
+
+                    <!-- AI Context -->
+                    <div class="form-group" style="grid-column: 1 / -1; margin-top: 10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px">
+                            <label>🤖 Instructions pour l'IA (Personal Shopper)</label>
+                            <button type="button" class="btn-link"
+                                style="font-size:0.75rem; color:var(--primary); background:none; border:none; cursor:pointer"
+                                onclick="openGemBuilder()">✨ Aide à la rédaction (Gem)</button>
+                        </div>
+                        <textarea id="ai-context"
+                            placeholder="Ex: 'Je cherche un vélo robuste. Analyse l'état du cadre et des pneus.' "
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); min-height: 80px; font-family: inherit; font-size: 0.9rem; background: #FAFAFA"></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <button class="btn-search" onclick="performSearch()">RECHERCHER SUR LEBONCOIN</button>
+            <button class="btn-link" onclick="createWatchFromSearch()"
+                style="width:100%; border-color: var(--text-muted); color: var(--text-muted); margin-top:10px">💾
+                Transformer cette recherche en veille active</button>
+
+            <div class="results-header">
+                <h2 id="results-count">Résultats récents</h2>
+                <div style="color: var(--text-muted); font-size: 0.9rem" id="last-update">Prêt pour la recherche</div>
             </div>
-            <div id="active-watches" style="display:flex; flex-wrap:wrap; gap:0.5rem">
-                <!-- Watches badges here -->
+
+            <div class="ads-grid" id="ads-grid-live">
+                <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: #AAA;">
+                    <p>Entrez vos critères et lancez la recherche.</p>
+                </div>
             </div>
         </section>
 
-        <!-- --- Filters & Market --- -->
-        <div class="controls" style="justify-content: space-between;">
-            <div style="display:flex; gap:1rem; align-items: center;">
-                <select id="sort-filter" onchange="loadData()"
-                    style="padding:0.6rem; border-radius:8px; border:1px solid var(--border)">
-                    <option value="date-desc">Plus récent</option>
-                    <option value="price-asc">Prix croissant</option>
-                    <option value="price-desc">Prix décroissant</option>
-                </select>
-                <button id="btn-analyze" class="btn-ai" onclick="runAnalysis()">
-                    <div class="loader" id="ai-loader" style="margin-right:8px"></div>
-                    🎯 Analyse IA par Lot
-                </button>
+        <!-- --- VIEW 2: WATCHES --- -->
+        <section id="view-watches" class="view-section">
+            <div class="results-header">
+                <h2>📡 Mes Sessions de Veilles Actives</h2>
             </div>
-            <div id="market-stats-brief"
-                style="font-size: 0.85rem; background: #fff; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--border); display:none">
-                <!-- Market stats here -->
+            <div id="active-watches-list"
+                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px">
+                <!-- Watches go here -->
+            </div>
+        </section>
+
+        <!-- --- SEARCH DASHBOARD --- -->
+        <section id="view-dashboard" class="view-section">
+            <div class="results-header"
+                style="flex-direction:column; align-items:flex-start; gap:5px; margin-bottom: 2rem; background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border)">
+                <div style="display:flex; justify-content:space-between; width:100%; align-items:center">
+                    <h2 id="current-search-name" style="color:var(--primary)">Nom de la recherche</h2>
+                    <div style="display:flex; gap:10px">
+                        <button class="btn-primary" style="padding: 0.5rem 1rem; font-size:0.8rem"
+                            onclick="switchTab('live')">🚀 Relancer/Modifier</button>
+                        <button class="btn-primary"
+                            style="padding: 0.5rem 1rem; font-size:0.8rem; background: var(--secondary)"
+                            onclick="switchTab('watches')">⬅️ Retour</button>
+                    </div>
+                </div>
+                <div id="current-search-stats" style="color:var(--text-muted); font-size:0.9rem">Filtres appliqués...
+                </div>
+            </div>
+
+            <!-- Sub-Tabs -->
+            <div style="display:flex; gap:10px; margin-bottom:20px; border-bottom:1px solid var(--border)">
+                <div class="tab active subtab" onclick="switchSubTab('history')">📦 Annonces</div>
+                <div class="tab subtab" onclick="switchSubTab('map')">🗺️ Carte</div>
+                <div class="tab subtab" onclick="switchSubTab('trends')">📊 Marché</div>
+            </div>
+
+            <div id="sub-history" class="sub-view active">
+                <div class="ads-grid" id="ads-grid-history"></div>
+            </div>
+            <div id="sub-map" class="sub-view" style="display:none">
+                <div id="map"></div>
+            </div>
+            <div id="sub-trends" class="sub-view" style="display:none">
+                <div class="chart-container"><canvas id="priceChart"></canvas></div>
+            </div>
+        </section>
+
+        <style>
+            .sub-view.active {
+                display: block !important;
+            }
+
+            .sub-view {
+                display: none;
+            }
+
+            .subtab.active {
+                color: var(--primary);
+                border-bottom: 3px solid var(--primary);
+            }
+        </style>
+    </div>
+
+    <div class="compare-bar" id="compare-bar">
+        <span id="compare-text">0 annonce sélectionnée</span>
+        <button class="btn-primary" onclick="runComparison()">Comparer avec l'IA ✨</button>
+        <button style="background:none; border:none; color:white; cursor:pointer"
+            onclick="clearSelection()">Annuler</button>
+    </div>
+
+    <div class="modal" id="compare-modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">×</span>
+            <h3>✨ Recommandation de votre Personal Shopper IA</h3>
+            <div id="compare-result" style="line-height:1.6">
+                <!-- AI Result here -->
+                <p>Analyse en cours...</p>
             </div>
         </div>
+    </div>
 
-        <div id="ads-grid" class="ads-grid">
-            <!-- Ads injected here -->
+    <div class="modal" id="gem-builder-modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeGemModal()">×</span>
+            <h3>✨ Assistant de Rédaction (Gem)</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem">Expliquez simplement votre
+                objectif (ex: "Je veux un vélo pour mon fils de 10 ans") et l'IA construira une instruction d'expert
+                pour vous.</p>
+            <input type="text" id="gem-goal" placeholder="Quel est votre objectif ?"
+                style="width:100%; margin-bottom:10px">
+            <button class="btn-search" onclick="buildGem()">Générer les instructions d'expert</button>
+            <div id="gem-loading" style="display:none; text-align:center; padding:1rem">
+                <div class="loader" style="display:inline-block"></div>
+            </div>
+            <div id="gem-preview"
+                style="display:none; margin-top:20px; background:var(--bg); padding:1.5rem; border-radius:12px; font-size:0.9rem; font-style:italic; border:1px dashed var(--border)">
+                <!-- Preview here -->
+            </div>
+            <button id="btn-use-gem" class="btn-primary" style="display:none; width:100%; margin-top:15px"
+                onclick="useGem()">Utiliser cette instruction</button>
         </div>
-    </main>
+    </div>
 
-    <div id="notification"></div>
+    <div id="notification">Notification message</div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        async function loadData() {
-            // 1. Stats globales
-            const statsResp = await fetch('/api/stats');
-            const stats = await statsResp.json();
-            document.getElementById('stat-total').innerText = stats.total_ads;
-            document.getElementById('stat-pending').innerText = stats.pending_ai;
-            document.getElementById('stat-avg').innerText = Math.round(stats.avg_price) + '€';
+        let keywords = [];
+        let metadata = { categories: [], regions: [], departments: [] };
+        let adsData = [];
+        let selectedAds = [];
+        let map = null;
+        let chart = null;
 
-            // 2. Liste des veilles
-            loadWatches();
+        async function init() {
+            try {
+                const resp = await fetch('/api/metadata');
+                metadata = await resp.json();
 
-            // 3. Annonces
-            const adsResp = await fetch('/api/ads');
-            let ads = await adsResp.json();
+                // Populate categories
+                const catSelect = document.getElementById('category-select');
+                metadata.categories.sort((a, b) => a.name.localeCompare(b.name)).forEach(c => {
+                    if (c.id === '0') return;
+                    const opt = document.createElement('option');
+                    opt.value = c.name.toUpperCase().replace(/ /g, '_');
+                    opt.innerText = c.name;
+                    catSelect.appendChild(opt);
+                });
 
-            // Tri
-            const sortVal = document.getElementById('sort-filter').value;
-            if (sortVal === 'price-asc') ads.sort((a, b) => (a.price || 0) - (b.price || 0));
-            else if (sortVal === 'price-desc') ads.sort((a, b) => (b.price || 0) - (a.price || 0));
-            else ads.sort((a, b) => new Date(b.date) - new Date(a.date));
+                loadWatches();
+                await loadHistory();
+                initMap();
+            } catch (e) {
+                console.error("Metadata load error", e);
+            }
+        }
 
-            const grid = document.getElementById('ads-grid');
-            grid.innerHTML = '';
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab:not(.subtab)').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
 
-            ads.forEach((ad) => {
-                const card = document.createElement('div');
-                card.className = 'ad-card';
+            if (event && event.target && event.target.classList.contains('tab')) {
+                event.target.classList.add('active');
+            }
+            document.getElementById(`view-${tabId}`).classList.add('active');
 
-                const imgUrl = ad.image_url || 'https://via.placeholder.com/300x180?text=Pas+d+image';
-                const proBadge = ad.is_pro ? '<div class="badge-pro">PRO</div>' : '';
-                const summaryHtml = ad.ai_summary
-                    ? `<div class="ai-summary">🚀 ${ad.ai_summary}</div>`
-                    : '';
+            if (tabId === 'watches') loadWatches();
+        }
 
-                // Calcul simple du deal (pour la démo, on compare à la moyenne globale si pas de stats précises)
-                const isGoodDeal = ad.price && ad.price < stats.avg_price * 0.9;
-                const dealBadge = isGoodDeal ? `<div style="background:#10B981; color:white; padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:800; margin-top:5px; display:inline-block">🔥 BONNE AFFAIRE</div>` : '';
+        function switchSubTab(subId) {
+            document.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.sub-view').forEach(s => s.classList.remove('active'));
 
-                card.innerHTML = `
-                    <div class="ad-image-container">
-                        <img src="${imgUrl}" class="ad-image" onerror="this.src='https://via.placeholder.com/300x180?text=Image+Invalide'">
-                        ${proBadge}
-                    </div>
-                    <div class="ad-content">
-                        <div class="ad-title">${ad.title}</div>
-                        <div style="display:flex; align-items:center; gap:10px">
-                            <div class="ad-price">${ad.price ? ad.price.toLocaleString() + ' €' : 'Prix ?'}</div>
-                            ${dealBadge}
-                        </div>
-                        <div class="ad-meta">
-                            <span>📍 ${ad.location}</span>
-                            <span>🕒 ${new Date(ad.date).toLocaleDateString()}</span>
-                        </div>
-                        ${summaryHtml}
-                        <a href="${ad.url}" target="_blank" class="btn-link">Voir l'annonce</a>
-                    </div>
-                `;
-                grid.appendChild(card);
+            if (event && event.target) event.target.classList.add('active');
+            document.getElementById(`sub-${subId}`).classList.add('active');
+
+            if (subId === 'map') {
+                setTimeout(() => map.invalidateSize(), 200);
+                renderMap();
+            }
+            if (subId === 'trends') renderTrends();
+        }
+
+        async function openDashboard(searchName) {
+            currentSearchName = searchName;
+            document.getElementById('current-search-name').innerText = searchName;
+            switchTab('dashboard');
+            switchSubTab('history');
+            await loadHistory(searchName);
+        }
+
+        async function editWatch(name) {
+            const resp = await fetch(`/api/searches/${encodeURIComponent(name)}`);
+            const s = await resp.json();
+
+            // Populate form
+            keywords = [s.query_text];
+            document.getElementById('loc-city').value = s.city || '';
+            document.getElementById('price-min').value = s.price_min || '';
+            document.getElementById('price-max').value = s.price_max || '';
+            document.getElementById('ai-context').value = s.ai_context || '';
+
+            renderKeywords();
+            switchTab('live');
+            showNotify("Paramètres chargés. Vous pouvez modifier et enregistrer.");
+        }
+
+        function openGemBuilder() {
+            document.getElementById('gem-builder-modal').classList.add('show');
+        }
+
+        function closeGemModal() {
+            document.getElementById('gem-builder-modal').classList.remove('show');
+        }
+
+        async function buildGem() {
+            const goal = document.getElementById('gem-goal').value;
+            if (!goal) return showNotify("Dites-moi ce que vous cherchez.");
+
+            const loader = document.getElementById('gem-loading');
+            const preview = document.getElementById('gem-preview');
+            const btn = document.getElementById('btn-use-gem');
+
+            loader.style.display = 'block';
+            preview.style.display = 'none';
+            btn.style.display = 'none';
+
+            try {
+                const resp = await fetch('/api/gem-builder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ goal: goal })
+                });
+                const data = await resp.json();
+                preview.innerText = data.instructions;
+                preview.style.display = 'block';
+                btn.style.display = 'block';
+            } catch (e) {
+                showNotify("Erreur lors de la construction.");
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        function useGem() {
+            document.getElementById('ai-context').value = document.getElementById('gem-preview').innerText;
+            closeGemModal();
+            showNotify("Instruction IA mise à jour !");
+        }
+
+        function initMap() {
+            map = L.map('map').setView([46.603354, 1.888334], 6); // Center of France
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        function renderMap() {
+            // Clear markers (crude way for demo)
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker) map.removeLayer(layer);
             });
+
+            adsData.forEach(ad => {
+                if (ad.lat && ad.lng) {
+                    const price = ad.price ? `${ad.price}€` : '';
+                    L.marker([ad.lat, ad.lng])
+                        .addTo(map)
+                        .bindPopup(`<b>${ad.title}</b><br>${price}<br><a href="${ad.url}" target="_blank">Voir</a>`);
+                }
+            });
+        }
+
+        function renderTrends() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            // Group by category for trends
+            const catCounts = {};
+            adsData.forEach(ad => {
+                const cat = ad.category || 'Inconnu';
+                if (!catCounts[cat]) catCounts[cat] = { sum: 0, count: 0 };
+                catCounts[cat].sum += ad.price || 0;
+                catCounts[cat].count++;
+            });
+
+            const labels = Object.keys(catCounts);
+            const averages = labels.map(l => (catCounts[l].sum / catCounts[l].count).toFixed(0));
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Prix moyen par catégorie (€)',
+                        data: averages,
+                        backgroundColor: '#FF6E14',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function addKeyword() {
+            const input = document.getElementById('keyword-input');
+            const val = input.value.trim();
+            if (val && !keywords.includes(val)) {
+                keywords.push(val);
+                renderKeywords();
+            }
+            input.value = '';
+        }
+
+        function removeKeyword(kw) {
+            keywords = keywords.filter(k => k !== kw);
+            renderKeywords();
+        }
+
+        function renderKeywords() {
+            const list = document.getElementById('keywords-list');
+            list.innerHTML = '';
+            keywords.forEach(kw => {
+                const tag = document.createElement('div');
+                tag.className = 'keyword-tag';
+                tag.innerHTML = `${kw} <span onclick="removeKeyword('${kw}')">×</span>`;
+                list.appendChild(tag);
+            });
+        }
+
+        function updateLocUI() {
+            const type = document.getElementById('loc-type').value;
+            const group = document.getElementById('loc-val-group');
+            const cityInput = document.getElementById('loc-city');
+            const radiusInput = document.getElementById('loc-radius');
+            const select = document.getElementById('loc-select');
+            const label = document.getElementById('loc-val-label');
+
+            group.style.display = type === 'none' ? 'none' : 'flex';
+            cityInput.style.display = type === 'city' ? 'block' : 'none';
+            radiusInput.style.display = type === 'city' ? 'block' : 'none';
+            select.style.display = (type === 'dept' || type === 'region') ? 'block' : 'none';
+
+            select.innerHTML = '';
+            if (type === 'dept') {
+                label.innerText = 'Choisissez le département';
+                metadata.departments.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.id;
+                    opt.innerText = d.name;
+                    select.appendChild(opt);
+                });
+            } else if (type === 'region') {
+                label.innerText = 'Choisissez la région';
+                metadata.regions.sort((a, b) => a.name.localeCompare(b.name)).forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r.id;
+                    opt.innerText = r.name;
+                    select.appendChild(opt);
+                });
+            } else if (type === 'city') {
+                label.innerText = 'Ville et rayon (km)';
+            }
+        }
+
+        async function performSearch() {
+            const loader = document.getElementById('global-loader');
+            loader.style.display = 'block';
+
+            const payload = {
+                queries: keywords,
+                category: document.getElementById('category-select').value,
+                price_min: parseInt(document.getElementById('price-min').value) || null,
+                price_max: parseInt(document.getElementById('price-max').value) || null,
+                delivery: document.getElementById('delivery-toggle').checked,
+                sort: document.getElementById('sort-select').value,
+                owner_type: document.getElementById('owner-select').value === 'all' ? null : document.getElementById('owner-select').value
+            };
+
+            const locType = document.getElementById('loc-type').value;
+            if (locType === 'city') {
+                payload.city = document.getElementById('loc-city').value;
+                payload.radius = document.getElementById('loc-radius').value;
+            } else if (locType === 'dept') {
+                payload.department = document.getElementById('loc-select').value;
+            } else if (locType === 'region') {
+                payload.region = document.getElementById('loc-select').value;
+            }
+
+            try {
+                const resp = await fetch('/api/quick-search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const ads = await resp.json();
+                adsData = ads; // Store temporarily
+                renderAds(ads, 'ads-grid-live');
+                showNotify(`${ads.length} annonces trouvées !`);
+            } catch (e) {
+                showNotify("Erreur lors de la recherche.");
+                console.error(e);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function createWatchFromSearch() {
+            const sentence = keywords.join(' ') + ' ' + (document.getElementById('loc-city').value || '');
+            if (!sentence.trim()) {
+                showNotify("Veuillez entrer au moins un mot-clé.");
+                return;
+            }
+
+            console.log("Saving watch with ads:", adsData);
+
+            const resp = await fetch('/api/searches', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sentence: sentence,
+                    ai_context: document.getElementById('ai-context').value,
+                    initial_ads: adsData // Pass current search results to save them
+                })
+            });
+
+            if (resp.ok) {
+                showNotify("La veille a été configurée et les résultats actuels ont été sauvegardés !");
+                switchTab('watches');
+                loadWatches();
+            } else {
+                showNotify("Erreur lors de la création de la veille.");
+            }
         }
 
         async function loadWatches() {
             const resp = await fetch('/api/searches');
             const searches = await resp.json();
-            const container = document.getElementById('active-watches');
-            container.innerHTML = '';
+            const list = document.getElementById('active-watches-list');
+            list.innerHTML = '';
+
+            if (searches.length === 0) {
+                list.innerHTML = '<p style="text-align:center; padding: 2rem; color: #AAA;">Aucune veille active.</p>';
+                return;
+            }
 
             searches.forEach(s => {
-                const badge = document.createElement('div');
-                badge.style = "background:var(--bg); border:1px solid var(--border); padding:0.4rem 1rem; border-radius:20px; font-size:0.8rem; display:flex; align-items:center; gap:0.5rem";
-                badge.innerHTML = `
-                    <span>📡 ${s.name} (${s.radius}km)</span>
-                    <button onclick="deleteWatch('${s.name}')" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold; padding:2px">×</button>
+                const item = document.createElement('div');
+                item.className = 'search-container';
+                item.style = "margin:0; padding:1.5rem; display:flex; flex-direction:column; gap:15px";
+                item.innerHTML = `
+                    <div style="display:flex; justify-content:space-between">
+                         <div>
+                            <div style="font-weight:800; color:var(--primary); font-size:1.1rem">${s.name}</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted)">Query: ${s.query_text} | ${s.city || 'Partout'}</div>
+                         </div>
+                         <button onclick="deleteWatch('${s.name}')" style="background:none; border:none; color:#AAA; cursor:pointer; font-size:1.5rem">×</button>
+                    </div>
+                    <div style="background:var(--bg); padding:10px; border-radius:8px; font-size:0.8rem; color:var(--text-muted); border:1px dashed var(--border)">
+                        <b>Instructions IA:</b> ${s.ai_context || 'Standard'}
+                    </div>
+                    <div style="display:flex; gap:10px">
+                        <button class="btn-primary" style="flex:1" onclick="openDashboard('${s.name}')">📈 Dashboard</button>
+                        <button class="btn-link" style="padding:5px 15px; border-radius:12px" onclick="editWatch('${s.name}')">✏️ Edit</button>
+                    </div>
                 `;
-                container.appendChild(badge);
+                list.appendChild(item);
             });
-        }
-
-        async function addWatch() {
-            const sentence = document.getElementById('new-watch-text').value;
-            if (!sentence) return;
-
-            const resp = await fetch('/api/searches', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sentence })
-            });
-
-            if (resp.ok) {
-                document.getElementById('new-watch-text').value = '';
-                showNotify("Veille ajoutée avec succès !");
-                loadData();
-            }
         }
 
         async function deleteWatch(name) {
-            if (!confirm("Supprimer cette veille ?")) return;
+            if (!confirm(`Supprimer la veille "${name}" ?`)) return;
             const resp = await fetch(`/api/searches/${encodeURIComponent(name)}`, { method: 'DELETE' });
             if (resp.ok) {
                 showNotify("Veille supprimée.");
-                loadData();
+                loadWatches();
             }
         }
 
-        async function runAnalysis() {
-            const btn = document.getElementById('btn-analyze');
-            const loader = document.getElementById('ai-loader');
+        async function loadHistory(searchName = null) {
+            const url = searchName ? `/api/ads?search_name=${encodeURIComponent(searchName)}` : '/api/ads';
+            const resp = await fetch(url);
+            const ads = await resp.json();
+            adsData = ads;
+            renderAds(ads, 'ads-grid-history');
 
-            btn.disabled = true;
+            if (searchName) {
+                document.getElementById('current-search-stats').innerText = `${ads.length} annonces trouvées pour cette session`;
+            }
+        }
+
+        async function runBatchAnalysis() {
+            const loader = document.getElementById('global-loader');
             loader.style.display = 'block';
-
             try {
                 const resp = await fetch('/api/analyze', { method: 'POST' });
                 const result = await resp.json();
-
                 showNotify(result.message);
-                if (result.status === 'success') {
-                    loadData();
-                }
+                loadHistory();
             } catch (e) {
-                showNotify("Erreur lors de l'analyse.");
+                showNotify("Erreur lors de l'analyse IA.");
             } finally {
-                btn.disabled = false;
                 loader.style.display = 'none';
             }
+        }
+
+        function toggleAdSelection(adId) {
+            // Convert to string to avoid type mismatch
+            const sid = String(adId);
+            const index = selectedAds.findIndex(a => String(a.id) === sid);
+            const card = document.querySelector(`.ad-card[data-id="${adId}"]`);
+
+            if (index > -1) {
+                selectedAds.splice(index, 1);
+                if (card) card.classList.remove('selected');
+                console.log("Removed ad:", sid);
+            } else {
+                const ad = adsData.find(a => String(a.id) === sid);
+                if (ad) {
+                    selectedAds.push(ad);
+                    if (card) card.classList.add('selected');
+                    console.log("Added ad:", sid);
+                }
+            }
+
+            const bar = document.getElementById('compare-bar');
+            const text = document.getElementById('compare-text');
+
+            if (selectedAds.length > 0) {
+                text.innerText = `${selectedAds.length} annonce(s) sélectionnée(s)`;
+                bar.classList.add('show');
+            } else {
+                bar.classList.remove('show');
+            }
+        }
+
+        function clearSelection() {
+            selectedAds = [];
+            document.querySelectorAll('.ad-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById('compare-bar').classList.remove('show');
+        }
+
+        async function runComparison() {
+            if (selectedAds.length < 2) {
+                showNotify("Sélectionnez au moins 2 annonces pour comparer.");
+                return;
+            }
+
+            document.getElementById('compare-modal').classList.add('show');
+            document.getElementById('compare-result').innerHTML = '<div style="text-align:center; padding:2rem"><div class="loader" style="display:inline-block; width:40px; height:40px"></div><p>Analyse comparative en cours...</p></div>';
+
+            try {
+                const resp = await fetch('/api/compare', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ads: selectedAds })
+                });
+                const data = await resp.json();
+                document.getElementById('compare-result').innerHTML = marked.parse(data.recommendation);
+            } catch (e) {
+                document.getElementById('compare-result').innerHTML = "Désolé, une erreur est survenue lors de l'analyse.";
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('compare-modal').classList.remove('show');
+        }
+
+        function renderAds(ads, gridId) {
+            const grid = document.getElementById(gridId);
+            if (gridId === 'ads-grid-live') {
+                document.getElementById('results-count').innerText = `${ads.length} résultats trouvés`;
+                document.getElementById('last-update').innerText = `Mis à jour à ${new Date().toLocaleTimeString()}`;
+            }
+
+            grid.innerHTML = '';
+            if (ads.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: #AAA;">Aucun résultat trouvé.</div>';
+                return;
+            }
+
+            ads.forEach(ad => {
+                const card = document.createElement('div');
+                card.className = 'ad-card' + (selectedAds.find(s => s.id === ad.id) ? ' selected' : '');
+                card.setAttribute('data-id', ad.id);
+
+                const img = ad.image_url || 'https://via.placeholder.com/300x180?text=Pas+d+image';
+                const price = ad.price ? `${ad.price.toLocaleString()} €` : 'Prix ?';
+                const date = new Date(ad.date).toLocaleDateString();
+
+                const score = ad.ai_score ? `
+                    <div style="background: ${ad.ai_score > 7 ? '#10B981' : '#F59E0B'}; color:white; padding:4px 8px; border-radius:8px; font-size:0.75rem; font-weight:800; display:inline-block; margin-bottom:8px">
+                        Note IA: ${ad.ai_score}/10
+                    </div>
+                ` : '';
+
+                const aiSummary = ad.ai_summary ? `<div style="background:#FEE2D5; color:#D35400; padding:10px; border-radius:8px; font-size:0.75rem; margin-top:10px; font-weight:600">🤖 ${ad.ai_summary}</div>` : '';
+                const aiTips = ad.ai_tips ? `<div style="border-left: 3px solid #4183D7; padding-left: 10px; font-size: 0.75rem; color: #4183D7; margin-top: 10px; font-style: italic">💡 Conseil négociation: ${ad.ai_tips}</div>` : '';
+
+                card.innerHTML = `
+                    <div class="ad-img-box" onclick="window.open('${ad.url}', '_blank')">
+                        <div class="select-check" onclick="event.stopPropagation(); toggleAdSelection('${ad.id}')"></div>
+                        <img src="${img}" class="ad-img" onerror="this.src='https://via.placeholder.com/300x180?text=Image+Invalide'">
+                    </div>
+                    <div class="ad-info" onclick="window.open('${ad.url}', '_blank')">
+                        ${score}
+                        <div class="ad-title">${ad.title}</div>
+                        <div class="ad-price">${price}</div>
+                        <div class="ad-meta">
+                            <span>📍 ${ad.location}</span>
+                            <span>🕒 ${date}</span>
+                        </div>
+                        ${aiSummary}
+                        ${aiTips}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
         }
 
         function showNotify(msg) {
@@ -465,10 +1280,8 @@
 
         if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-theme');
 
-        // Initial Load
-        loadData();
+        init();
     </script>
 </body>
 
 </html>
-```
