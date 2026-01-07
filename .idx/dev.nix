@@ -6,11 +6,10 @@
 
   # Use https://search.nixos.org/packages to find packages
   packages = [
-    # pkgs.go
-    # pkgs.python311
-    # pkgs.python311Packages.pip
-    # pkgs.nodejs_20
-    # pkgs.nodePackages.nodemon
+    pkgs.python312
+    pkgs.python312Packages.pip # For checking versions, etc.
+    pkgs.python312Packages.lbc # The dependency from requirements.txt
+    pkgs.unzip # A common dependency for chromedriver used by lbc
   ];
 
   # Sets environment variables in the workspace

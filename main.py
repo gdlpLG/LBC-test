@@ -2,117 +2,108 @@ from searcher import Searcher
 from model import Search, Parameters
 import lbc
 from config import handle
-from analyzer import analyze_results
+from analyzer import analyze_results, generate_batch_summaries
 import database
 from nlp import parse_sentence
+import random # Import the random module
+
+def run_viewer():
+    # ... (this function remains the same)
+    pass
+
+def run_batch_summary_generation():
+    # ... (this function remains the same)
+    pass
 
 def run_quick_search():
-    """
-    Runs a one-shot search, ordered by date, to align with Leboncoin's default sorting.
-    """
-    print("\n--- Lancement d'une recherche rapide (20 dernières annonces) ---")
-    text = input("Que recherchez-vous ? > ")
-    city_name = input("Dans quelle ville ? (Laissez vide pour la France entière) > ")
-
-    print(f"\nRecherche des 20 dernières annonces pour '{text}'...")
-    try:
-        locations = [lbc.City.from_string(name=city_name)] if city_name else None
-        ads = lbc.search(text=text, locations=locations, limit=20, sort=lbc.Sort.NEWEST)
-
-    except Exception as e:
-        print(f"Erreur durant la recherche : {e}")
-        return
-
-    if not ads:
-        print("Aucune annonce trouvée pour cette recherche.")
-        return
-
-    print(f"\n--- {len(ads)} dernières annonces trouvées ---\n")
-    for i, ad in enumerate(ads):
-        print(f"#{i+1} | {ad.index_date.strftime('%d-%m-%Y %H:%M')}")
-        print(f"  Titre: {ad.subject}")
-        print(f"  Prix: {ad.price} €")
-        print(f"  Lieu: {ad.location.city_label}")
-        print(f"  URL: {ad.url}\n")
+    # ... (this function remains the same)
+    pass
 
 def run_nlp_watch():
     """
-    Configures and runs a continuous watch based on a natural language sentence.
+    Configures and runs a continuous watch with a randomized, longer delay
+    to avoid IP bans and appear more human-like.
     """
     print("\n--- Configuration d'une veille par langage naturel ---")
-    print("Décrivez ce que vous cherchez en une phrase.")
-    print(r"Ex: Cherche une Renault Clio 5 sur Bordeaux avec un budget max de 15000 euros")
-    user_sentence = input("> ")
-
+    user_sentence = input("Décrivez votre recherche (ex: Clio 5 à Bordeaux, budget max 15000€) > ")
     try:
         criteria = parse_sentence(user_sentence)
+        print(f"\nCritères interprétés:\n  Quoi: {criteria['text']}\n  Où: {criteria['location'] or 'France'}\n  Prix: {criteria['price_min']}-{criteria['price_max']}\n")
         
-        print("\n--- Critères de recherche interprétés ---")
-        print(f"  Quoi : {criteria['text']}")
-        print(f"  Où : {criteria['location'] or 'France entière'}")
-        print(f"  Prix min : {criteria['price_min'] or 'Non spécifié'}")
-        print(f"  Prix max : {criteria['price_max'] or 'Non spécifié'}")
-        print("-" * 40)
-        
-        confirm = input("Ces critères sont-ils corrects ? (oui/non) > ").lower()
-        if confirm != 'oui':
-            print("Opération annulée.")
+        if input("Lancer la veille ? (oui/non) > ").lower() != 'oui':
+            print("Annulé.")
             return
-
-        # Prepare parameters for the search
-        locations = [lbc.City.from_string(name=criteria['location'])] if criteria['location'] else None
+        
+        # --- Randomized Delay --- #
+        delay_seconds = random.randint(900, 1500) # 15 to 25 minutes
+        delay_minutes = round(delay_seconds / 60)
         
         params = Parameters(
-            text=criteria['text'],
-            locations=locations,
+            text=criteria['text'], 
+            locations=[lbc.City.from_string(name=criteria['location'])] if criteria['location'] else None, 
             price=(criteria['price_min'], criteria['price_max'])
         )
-
-        search_name = f"Veille NLP: {criteria['text']}"
-        search = Search(name=search_name, parameters=params, handler=handle, delay=600)
-
+        search = Search(name=f"Veille NLP: {criteria['text']}", parameters=params, handler=handle, delay=delay_seconds)
         searcher = Searcher(searches=[search])
-        print(f"\nLancement de la veille '{search_name}'. Le programme va maintenant chercher de nouvelles annonces toutes les 10 minutes.")
+        
+        print(f"\nVeille lancée. Le programme cherchera de nouvelles annonces à un intervalle long et aléatoire (prochaine recherche dans ~{delay_minutes} minutes). ")
         searcher.start()
-        print("La veille est active. Vous pouvez fermer cette fenêtre si vous le souhaitez.")
 
     except Exception as e:
-        print(f"Une erreur est survenue lors de la configuration de la veille : {e}")
-
+        print(f"Une erreur est survenue: {e}")
 
 def main() -> None:
+    # ... (main menu logic remains the same)
+    pass
+
+# --- Full function definitions needed for the script to be complete ---
+
+def run_viewer():
+    print("\n--- Consultation des annonces sauvegardées ---")
+    all_ads = database.get_all_ads()
+    if not all_ads: return print("Aucune annonce sauvegardée.")
+    all_ads.sort(key=lambda x: x.get('date') or '', reverse=True)
+    print(f"\nAffichage de {len(all_ads)} annonce(s) :\n")
+    for i, ad in enumerate(all_ads):
+        summary = ad.get('ai_summary') or "[En attente]"
+        print(f"#{i+1} | {ad.get('title','N/A')} | {ad.get('price','N/A')}€\n  Résumé: {summary}\n  URL: {ad.get('url','N/A')}\n")
+
+def run_batch_summary_generation():
+    print("\n--- Lancement du résumé par lot via IA ---")
+    ads_to_summarize = database.get_ads_without_summary()
+    if not ads_to_summarize: return print("Toutes les annonces ont déjà un résumé.")
+    print(f"{len(ads_to_summarize)} annonce(s) en attente.")
+    summaries = generate_batch_summaries(ads_to_summarize)
+    if not summaries: return print("Génération de résumés annulée.")
+    database.update_summaries_in_batch(summaries)
+    print("\nProcessus de résumé par lot terminé.")
+
+def run_quick_search():
+    print("\n--- Recherche rapide --- ")
+    text, city = input("Recherche > "), input("Ville > ")
+    try:
+        loc = [lbc.City.from_string(name=city)] if city else None
+        ads = lbc.search(text=text, locations=loc, limit=20, sort=lbc.Sort.NEWEST)
+        if ads: print(f"\n--- {len(ads)} annonces ---\n")
+        for ad in ads: print(f"{ad.index_date.strftime('%H:%M')} | {ad.subject} | {ad.price}€ | {ad.url}\n")
+    except Exception as e: print(f"Erreur: {e}")
+
+def main():
     database.initialize_db()
-
     while True:
-        print("\n--- LBC Finder V2 ---")
-        print("1. Recherche rapide (identique au site)")
-        print("2. Lancer une veille par langage naturel")
-        print("3. Analyser les résultats de la veille")
-        print("4. Quitter")
-        choice = input("Que souhaitez-vous faire ? > ")
-
-        if choice == '1':
-            run_quick_search()
-            break
-        elif choice == '2':
-            run_nlp_watch()
-            break
-        elif choice == '3':
-            print("\n--- Analyse des résultats sauvegardés ---")
-            search_text = input("Texte de la recherche à analyser (ex: clio 5, porsche 944) > ")
-            while True:
-                try:
-                    ideal_price = float(input("Votre prix idéal pour cette recherche ? > "))
-                    break
-                except ValueError:
-                    print("Veuillez entrer un nombre valide.")
-            analyze_results(search_text, ideal_price)
-            break
-        elif choice == '4':
-            print("Au revoir !")
-            break
-        else:
-            print("Choix invalide, veuillez réessayer.")
+        print("\n--- LBC Finder V5 - Menu ---")
+        print("1. Recherche rapide", "2. Lancer une veille", "3. Analyser (Top 10)", "4. Générer résumés IA", "5. Consulter les annonces", "6. Quitter", sep="\n")
+        choice = input("> ")
+        if choice == '1': run_quick_search(); break
+        elif choice == '2': run_nlp_watch(); break
+        elif choice == '3': 
+            st = input("Texte à analyser > ")
+            ip = float(input("Prix idéal > "))
+            analyze_results(st, ip); break
+        elif choice == '4': run_batch_summary_generation(); break
+        elif choice == '5': run_viewer(); break
+        elif choice == '6': print("Au revoir !"); break
+        else: print("Choix invalide.")
 
 if __name__ == "__main__":
     main()

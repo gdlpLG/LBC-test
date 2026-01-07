@@ -12,7 +12,6 @@ def initialize_db():
     """
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
-        # Create table if it doesn't exist
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ads (
                 id TEXT PRIMARY KEY,
@@ -22,21 +21,19 @@ def initialize_db():
                 location TEXT,
                 date TEXT,
                 url TEXT UNIQUE,
-                description TEXT
+                description TEXT,
+                ai_summary TEXT
             )
         ''')
-        # Add the new ai_summary column if it doesn't exist (for migration)
         try:
-            cursor.execute("ALTER TABLE ads ADD COLUMN ai_summary TEXT")
+            cursor.execute("SELECT ai_summary FROM ads LIMIT 1")
         except sqlite3.OperationalError:
-            # Column already exists, which is fine.
-            pass
+            cursor.execute("ALTER TABLE ads ADD COLUMN ai_summary TEXT")
         conn.commit()
 
 def add_ad(ad_data: Dict[str, Any]):
     """
-    Inserts a new ad into the database. Returns True if insertion is successful.
-    The dictionary must contain the 'ai_summary' key.
+    Inserts a new ad into the database. The summary can be None.
     """
     try:
         with sqlite3.connect(DB_FILE) as conn:
@@ -48,16 +45,45 @@ def add_ad(ad_data: Dict[str, Any]):
             conn.commit()
         return True
     except sqlite3.IntegrityError:
-        # This happens if the ad ID or URL already exists, which is expected.
         return False
     except Exception as e:
         print(f"[Database Error] Failed to add ad: {e}")
         return False
 
+def get_ads_without_summary() -> List[Dict[str, Any]]:
+    """
+    Retrieves all ads that do not have an AI summary yet.
+    """
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute('SELECT id, title, description FROM ads WHERE ai_summary IS NULL OR ai_summary = ""')
+            return [dict(row) for row in cursor.fetchall()]
+    except Exception as e:
+        print(f"[Database Error] Failed to get ads for summary: {e}")
+        return []
+
+def update_summaries_in_batch(summaries: List[Dict[str, str]]):
+    """
+    Updates the ai_summary for multiple ads in a single transaction.
+    Expects a list of dictionaries, each with 'id' and 'summary'.
+    """
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.executemany('''
+                UPDATE ads
+                SET ai_summary = :summary
+                WHERE id = :id
+            ''', summaries)
+            conn.commit()
+            print(f"Successfully updated {len(summaries)} summaries in the database.")
+    except Exception as e:
+        print(f"[Database Error] Failed to update summaries in batch: {e}")
+
 def get_all_ad_ids() -> List[str]:
-    """
-    Retrieves a list of all ad IDs currently in the database.
-    """
+    # ... (rest of the file is similar)
     try:
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
@@ -68,9 +94,6 @@ def get_all_ad_ids() -> List[str]:
         return []
 
 def get_all_ads() -> List[Dict[str, Any]]:
-    """
-    Retrieves all ads from the database for analysis.
-    """
     try:
         with sqlite3.connect(DB_FILE) as conn:
             conn.row_factory = sqlite3.Row
@@ -81,5 +104,5 @@ def get_all_ads() -> List[Dict[str, Any]]:
         print(f"[Database Error] Failed to get all ads: {e}")
         return []
 
-# Initialize or update the database as soon as this module is loaded
+# Initialize or update the database
 initialize_db()

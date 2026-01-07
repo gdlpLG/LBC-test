@@ -1,24 +1,23 @@
 from model import Search, Parameters
 import lbc
 import database
+# analyzer.generate_summary is no longer called here.
 
 def handle(ad: lbc.Ad, search_name: str):
     """
     Handles a new ad found by the searcher.
-    1. Prints the ad to the console.
-    2. Saves the ad to the SQLite database.
+    It now ONLY saves the ad to the database with a NULL summary.
+    The summary generation is now a separate, manual step.
     """
-    # --- 1. Print to console ---
-    print(f"============== [{search_name}] Nouvelle annonce !==============")
+    # --- 1. Print base info for immediate notification ---
+    print(f"============== [{search_name}] Nouvelle annonce trouvée !==============")
     print(f"Titre : {ad.subject}")
     print(f"Prix : {ad.price} €")
     print(f"Localisation : {ad.location.city_label}")
-    print(f"Date : {ad.index_date}")
     print(f"URL : {ad.url}")
-    print(f"Description : \n{ad.body[:200]}...")
     print("-" * 60)
 
-    # --- 2. Save to database ---
+    # --- 2. Save to database (without summary) ---
     ad_data = {
         'id': ad.id,
         'search_name': search_name,
@@ -27,13 +26,17 @@ def handle(ad: lbc.Ad, search_name: str):
         'location': ad.location.city_label,
         'date': str(ad.index_date),
         'url': ad.url,
-        'description': ' '.join(ad.body.splitlines())
+        'description': ' '.join(ad.body.splitlines()),
+        'ai_summary': None # Save with a null summary
     }
     
+    # The add_ad function will need to be updated to handle this
     if database.add_ad(ad_data):
-        print(f"Annonce sauvegardée dans la base de données.")
+        print(f"Annonce sauvegardée. Générez le résumé plus tard via le menu principal.")
     else:
-        print(f"Annonce déjà présente dans la base de données.")
+        # This case is less likely to be seen by the user now,
+        # as the ID check prevents the handler from being called for old ads.
+        pass # No need to print anything for duplicates
     print("=" * 60)
 
 # Default search configuration (can be used for testing)
