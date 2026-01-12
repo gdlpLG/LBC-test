@@ -9,585 +9,229 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        :root {
-            --primary: #FF6E14;
-            /* LBC Orange */
-            --primary-hover: #E85D00;
-            --secondary: #1A1A1A;
-            --bg: #F5F6F7;
-            --card-bg: #FFFFFF;
-            --border: #E6E6E6;
-            --text-dark: #1A1A1A;
-            --text-muted: #707070;
-            --success: #10B981;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        body.dark-theme {
-            --bg: #121212;
-            --card-bg: #1E1E1E;
-            --border: #333333;
-            --text-dark: #E0E0E0;
-            --text-muted: #A0A0A0;
-            --secondary: #FFFFFF;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Outfit', sans-serif;
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text-dark);
-            min-height: 100vh;
-            transition: background 0.3s, color 0.3s;
-        }
-
-        header {
-            background: white;
-            padding: 0.8rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: -1px;
-            cursor: pointer;
-        }
-
-        /* --- Navigation Tabs --- */
-        .tabs {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid var(--border);
-            padding: 0 2rem;
-        }
-
-        .tab {
-            padding: 1rem 1.5rem;
-            cursor: pointer;
-            font-weight: 600;
-            color: var(--text-muted);
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-
-        .view-section {
-            display: none;
-        }
-
-        .view-section.active {
-            display: block;
-        }
-
-        #map {
-            height: 600px;
-            width: 100%;
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            z-index: 10;
-        }
-
-        .chart-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            margin-bottom: 2rem;
-        }
-
-        /* --- Selection & Compare --- */
-        .ad-card.selected {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px var(--primary);
-        }
-
-        .compare-bar {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--secondary);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 40px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            z-index: 1500;
-            transition: transform 0.3s;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .compare-bar.show {
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            padding: 2rem;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 20px;
-            max-width: 800px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        .modal-content h3 {
-            margin-bottom: 1.5rem;
-            color: var(--primary);
-            font-size: 1.5rem;
-        }
-
-        .modal-content .close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            cursor: pointer;
-            font-size: 1.5rem;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 2rem 2rem 2rem;
-        }
-
-        /* --- Search Section --- */
-        .search-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
-            border: 1px solid var(--border);
-        }
-
-        .search-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-
-        input,
-        select {
-            padding: 0.8rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            font-size: 0.95rem;
-            background: #FAFAFA;
-            transition: border-color 0.2s;
-        }
-
-        input:focus,
-        select:focus {
-            outline: none;
-            border-color: var(--primary);
-            background: white;
-        }
-
-        .multi-keywords {
-            grid-column: span 2;
-        }
-
-        .keyword-input-wrapper {
-            display: flex;
-            gap: 10px;
-        }
-
-        .keywords-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .keyword-tag {
-            background: #EEE;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 500;
-        }
-
-        .keyword-tag span {
-            cursor: pointer;
-            color: #888;
-            font-weight: bold;
-        }
-
-        .keyword-tag span:hover {
-            color: var(--primary);
-        }
-
-        /* --- Toggles --- */
-        .toggle-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked+.slider {
-            background-color: var(--primary);
-        }
-
-        input:checked+.slider:before {
-            transform: translateX(20px);
-        }
-
-        .btn-search {
-            background: var(--primary);
-            color: white;
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 12px;
-            font-weight: 800;
-            font-size: 1rem;
-            cursor: pointer;
-            margin-top: 1rem;
-            width: 100%;
-            transition: transform 0.1s, opacity 0.2s;
-        }
-
-        .btn-search:hover {
-            opacity: 0.9;
-        }
-
-        .btn-search:active {
-            transform: scale(0.98);
-        }
-
-        /* --- Results Area --- */
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .ads-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .ad-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-            transition: box-shadow 0.2s, transform 0.2s;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .ad-card:hover {
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-            transform: translateY(-4px);
-        }
-
-        .ad-img-box {
-            width: 100%;
-            height: 180px;
-            background: #EEE;
-            position: relative;
-        }
-
-        .ad-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .ad-info {
-            padding: 1rem;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .ad-title {
-            font-weight: 600;
-            font-size: 0.95rem;
-            line-height: 1.3;
-            margin-bottom: 8px;
-            height: 2.6em;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
-
-        .ad-price {
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: var(--secondary);
-        }
-
-        .ad-meta {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 10px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        /* --- Selection Circle --- */
-        .select-check {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 28px;
-            height: 28px;
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid var(--border);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 20;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: white;
-            font-weight: bold;
-        }
-
-        .ad-card.selected .select-check {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-
-        .ad-card.selected .select-check::after {
-            content: "✓";
-        }
-
-        .ad-card.selected {
-            border-color: var(--primary);
-            background: #FFF9F5;
-        }
-
-        #notification {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--secondary);
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            transform: translateY(100px);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 2000;
-        }
-
-        #notification.show {
-            transform: translateY(0);
-        }
-
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: none;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Tablet/Mobile fixes */
-        @media (max-width: 768px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .multi-keywords {
-                grid-column: span 1;
-            }
-        }
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔍</text></svg>">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js');
+            });
+        }
+    </script>
 </head>
 
 <body>
 
     <header>
-        <div class="logo" onclick="location.reload()">Leboncoin <span>Finder</span></div>
+        <div class="logo" onclick="location.reload()">LBC <span>Finder</span></div>
         <div style="display:flex; gap:15px; align-items:center">
+            <div class="user-menu"
+                style="display:flex; align-items:center; gap:10px; padding:5px 15px; background:rgba(255,255,255,0.05); border-radius:20px; border:1px solid var(--border)">
+                <span style="font-size:0.9rem; color:var(--text)">👤 <strong>{{ username }}</strong></span>
+                <a href="/logout"
+                    style="font-size:0.8rem; color:var(--text-muted); text-decoration:none; padding-left:10px; border-left:1px solid var(--border)">Déconnexion</a>
+            </div>
+            <button class="btn-primary"
+                style="background:var(--card-bg); color:var(--text); border:1px solid var(--border)"
+                onclick="openGlobalSettings()">⚙️ Configuration</button>
+            <button class="btn-primary"
+                style="background:var(--card-bg); color:var(--text); border:1px solid var(--border)"
+                onclick="openHelpModal()">❓ Aide</button>
+            <button class="btn-primary"
+                style="background:var(--card-bg); color:var(--warning); border:1px solid var(--border)"
+                onclick="openFeedbackModal()">💡 Idée/Bug</button>
+
+            <!-- Mini Log Terminal in Header -->
+            <div id="header-log-mini" style="
+                font-family: 'Consolas', monospace; 
+                font-size: 0.7rem; 
+                color: #d4d4d4; 
+                background: #1e1e1e; 
+                padding: 4px 8px; 
+                height: 40px; 
+                width: 280px;
+                overflow: hidden; 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: flex-end; 
+                border-radius: 6px; 
+                border: 1px solid var(--border); 
+                line-height: 1.2;
+                margin-right: 10px;
+                box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+                cursor: pointer;" onclick="switchTab('logs')" title="Cliquez pour voir tous les logs">
+                <div style="opacity:0.5">...</div>
+                <div style="opacity:0.75">Système prêt.</div>
+                <div style="color:var(--primary)">En attente...</div>
+            </div>
+
+            <div id="stats-summary" style="font-size: 0.9rem; color: var(--text-muted)">
+
+                <span id="stat-total-ads">0</span> annonces | <span id="stat-pending-ai"
+                    style="color:var(--primary)">0</span> à analyser
+            </div>
             <div class="loader" id="global-loader"></div>
-            <button class="btn-primary" style="padding: 0.5rem 1rem;" onclick="runBatchAnalysis()">🤖 Lancer Analyse
-                IA</button>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; position:relative;">
+                <button class="btn-primary" onclick="runBatchAnalysis()">🤖 Analyser tout</button>
+                <div id="ai-status-embedded" style="
+                    display:none; 
+                    margin-top: 5px; 
+                    background: var(--card-bg); 
+                    border: 1px solid var(--border); 
+                    border-radius: 8px; 
+                    padding: 8px; 
+                    width: 300px; 
+                    font-size: 0.75rem; 
+                    position: absolute; 
+                    top: 100%; 
+                    right: 0; 
+                    z-index: 1000; 
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                    backdrop-filter: blur(10px);">
+
+                    <div
+                        style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid var(--border); padding-bottom:4px;">
+                        <span id="ai-status-badge" style="font-weight:bold; color:var(--primary)">INITIALISATION</span>
+                        <span style="cursor:pointer; color:var(--danger)" onclick="stopAiAnalysis()">🛑 STOP</span>
+                    </div>
+                    <div
+                        style="height:4px; background:var(--bg); border-radius:2px; overflow:hidden; margin-bottom:5px;">
+                        <div id="ai-status-progress" style="height:100%; background:var(--primary); width:0%"></div>
+                    </div>
+                    <div id="ai-status-log"
+                        style="max-height:60px; overflow-y:auto; font-family:monospace; color:var(--text-muted); line-height:1.2;">
+                    </div>
+                </div>
+            </div>
             <button onclick="toggleTheme()"
                 style="background:none; border:none; font-size:1.4rem; cursor:pointer">🌓</button>
         </div>
     </header>
 
+
+    <!-- Global Settings Modal -->
+    <div id="global-settings-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+                <h2 style="margin:0">⚙️ Configuration Globale</h2>
+                <button class="btn-link" onclick="closeGlobalSettings()" style="font-size:1.5rem">&times;</button>
+            </div>
+
+            <div class="form-group">
+                <label>🤖 Clé API Google Gemini (IA)</label>
+                <input type="password" id="global-google-api-key" placeholder="AIzaSy..." style="width:100%">
+            </div>
+
+            <div class="form-group">
+                <label>📢 Webhook Discord (Notifications)</label>
+                <div style="display:flex; gap:10px">
+                    <input type="text" id="global-discord-webhook" placeholder="https://discord.com/..." style="flex:1">
+                    <button class="btn-primary"
+                        style="padding:0.5rem 1rem; background:var(--bg); border:1px solid var(--border)"
+                        onclick="testDiscord()">Tester</button>
+                </div>
+            </div>
+
+            <hr style="border:none; border-top:1px solid var(--border); margin:20px 0">
+
+            <h3 style="margin-bottom:15px">Valeurs par défaut pour les nouvelles veilles</h3>
+
+            <div class="form-group">
+                <label>🤖 Instructions IA par défaut</label>
+                <textarea id="global-default-ai-context" rows="3"
+                    placeholder="Ex: Priorise les annonces avec facture et garantie..."></textarea>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px">
+                <div class="form-group">
+                    <label>🔄 Mode d'actualisation</label>
+                    <select id="global-default-refresh-mode">
+                        <option value="manual">Manuel</option>
+                        <option value="auto">Automatique</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>⏱️ Intervalle (min)</label>
+                    <input type="number" id="global-default-refresh-interval" value="60">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>🌐 Plateformes par défaut</label>
+                <div style="display:flex; gap:15px; margin-top:10px">
+                    <label style="display:flex; gap:5px; cursor:pointer"><input type="checkbox" id="global-default-lbc"
+                            checked> LBC</label>
+                    <label style="display:flex; gap:5px; cursor:pointer"><input type="checkbox"
+                            id="global-default-ebay"> eBay</label>
+                    <label style="display:flex; gap:5px; cursor:pointer"><input type="checkbox"
+                            id="global-default-vinted"> Vinted</label>
+                </div>
+            </div>
+
+            <div style="margin-top:30px; display:flex; gap:10px">
+                <button class="btn-primary" style="flex:1" onclick="saveGlobalSettings()">Enregistrer tout</button>
+                <button class="btn-link" onclick="closeGlobalSettings()">Annuler</button>
+            </div>
+        </div>
+    </div>
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('live')">🔍 Nouvelle Recherche</div>
-        <div class="tab" onclick="switchTab('watches')">📡 Mes Sessions de Veille</div>
+        <div class="tab active" onclick="switchTab('live')">🔍 Recherche</div>
+        <div class="tab" onclick="switchTab('watches')">📡 Mes Veilles</div>
+        <div class="tab" onclick="switchTab('logs')">🖥️ Logs Système</div>
     </div>
 
     <div class="container">
         <!-- --- VIEW 1: LIVE SEARCH --- -->
         <section id="view-live" class="view-section active">
             <section class="search-container">
-                <div class="search-title">🚀 Recherche Instantanée</div>
+                <div class="search-title">🚀 Nouvelle Recherche</div>
 
                 <div class="form-grid">
-                    <!-- Keywords -->
                     <div class="form-group multi-keywords">
-                        <label>Mots-clés (plusieurs possibles)</label>
+                        <label>Mots-clés</label>
                         <div class="keyword-input-wrapper">
-                            <input type="text" id="keyword-input" placeholder="Ajouter un mot-clé (ex: PS5, Xbox...)"
+                            <input type="text" id="keyword-input" placeholder="Ajouter (ex: VTT, iPhone...)"
                                 onkeypress="if(event.key==='Enter') addKeyword()">
-                            <button onclick="addKeyword()"
-                                style="background:var(--secondary); color:white; border:none; padding:0 1.2rem; border-radius:8px; cursor:pointer; font-weight:bold">+</button>
+                            <button class="btn-primary" onclick="addKeyword()"
+                                style="padding:0 1.2rem; border-radius:8px">+</button>
                         </div>
                         <div class="keywords-list" id="keywords-list"></div>
                     </div>
 
-                    <!-- Category -->
                     <div class="form-group">
                         <label>Catégorie</label>
                         <select id="category-select">
-                            <option value="0">Toutes les catégories</option>
+                            <option value="0">Toutes</option>
                         </select>
                     </div>
 
-                    <!-- Location Type -->
-                    <div class="form-group">
-                        <label>Localisation</label>
-                        <div style="display:flex; gap:10px">
-                            <select id="loc-type" style="flex:1" onchange="updateLocUI()">
+                    <div class="form-group multi-locations"
+                        style="grid-column: 1 / -1; background: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+                        <label>📍 Localisation(s)</label>
+                        <div class="location-input-wrapper" style="display:flex; gap:10px; margin-top:10px">
+                            <select id="loc-type" onchange="updateLocUI()" style="flex:1">
                                 <option value="none">France Entière</option>
                                 <option value="city">Ville + Rayon</option>
                                 <option value="dept">Département</option>
                                 <option value="region">Région</option>
                             </select>
+                            <div id="loc-inputs" style="flex:2; display:flex; gap:10px">
+                                <input type="text" id="loc-city" placeholder="Ville" style="flex:2; display:none"
+                                    onkeypress="if(event.key==='Enter') addLocation()">
+                                <input type="number" id="loc-radius" placeholder="Km" style="flex:1; display:none"
+                                    value="10" onkeypress="if(event.key==='Enter') addLocation()">
+                                <select id="loc-select" style="flex:2; display:none"></select>
+                            </div>
+                            <button class="btn-primary" onclick="addLocation()"
+                                style="padding:0 1.2rem; border-radius:8px">+</button>
                         </div>
+                        <div class="locations-list" id="locations-list"
+                            style="display:flex; flex-wrap:wrap; gap:10px; margin-top:15px"></div>
                     </div>
 
-                    <!-- Location Value -->
-                    <div class="form-group" id="loc-val-group" style="display:none">
-                        <label id="loc-val-label">Valeur</label>
-                        <div style="display:flex; gap:10px">
-                            <input type="text" id="loc-city" placeholder="Nom de la ville" style="flex:2; display:none">
-                            <input type="number" id="loc-radius" placeholder="Km" style="flex:1; display:none"
-                                value="10">
-                            <select id="loc-select" style="flex:1; display:none"></select>
-                        </div>
-                    </div>
-
-                    <!-- Price Range -->
                     <div class="form-group">
                         <label>Prix (€)</label>
                         <div style="display:flex; gap:10px">
@@ -596,65 +240,102 @@
                         </div>
                     </div>
 
-                    <!-- Options -->
-                    <div class="form-group"
-                        style="flex-direction: row; gap: 20px; grid-column: span 1; align-items: center;">
+                    <div class="form-group" style="flex-direction: row; gap: 20px; align-items: center;">
                         <label class="toggle-group">
-                            <span class="switch">
-                                <input type="checkbox" id="delivery-toggle">
-                                <span class="slider"></span>
-                            </span>
+                            <span class="switch"><input type="checkbox" id="delivery-toggle"><span
+                                    class="slider"></span></span>
                             <span>Livraison</span>
                         </label>
                     </div>
 
-                    <!-- Owner Type -->
                     <div class="form-group">
-                        <label>Type de vendeur</label>
+                        <label>Vendeur</label>
                         <select id="owner-select">
                             <option value="all">Tous</option>
                             <option value="private">Particuliers</option>
-                            <option value="pro">Professionnels</option>
+                            <option value="pro">Pros</option>
                         </select>
                     </div>
 
-                    <!-- Sort -->
                     <div class="form-group">
-                        <label>Trier par</label>
+                        <label>Tri</label>
                         <select id="sort-select">
                             <option value="newest">Plus récent</option>
                             <option value="relevance">Pertinence</option>
                         </select>
                     </div>
 
-                    <!-- AI Context -->
-                    <div class="form-group" style="grid-column: 1 / -1; margin-top: 10px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px">
-                            <label>🤖 Instructions pour l'IA (Personal Shopper)</label>
-                            <button type="button" class="btn-link"
-                                style="font-size:0.75rem; color:var(--primary); background:none; border:none; cursor:pointer"
-                                onclick="openGemBuilder()">✨ Aide à la rédaction (Gem)</button>
+                    <div class="form-group"
+                        style="grid-column: 1 / -1; background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+                        <label>🕒 Mode d'actualisation de la veille</label>
+                        <div style="display:flex; gap:20px; margin-top:10px; align-items:center">
+                            <select id="refresh-mode" style="flex:1"
+                                onchange="document.getElementById('refresh-interval-group').style.display = (this.value==='auto'?'block':'none')">
+                                <option value="manual">Manuel (via bouton)</option>
+                                <option value="auto">Automatique (périodique)</option>
+                                <option value="none">Statique (pas d'actualisation)</option>
+                            </select>
+                            <div id="refresh-interval-group" style="flex:1; display:none">
+                                <div style="display:flex; align-items:center; gap:10px">
+                                    <input type="number" id="refresh-interval" value="60" style="width:80px">
+                                    <span style="font-size:0.8rem">minutes</span>
+                                </div>
+                            </div>
                         </div>
-                        <textarea id="ai-context"
-                            placeholder="Ex: 'Je cherche un vélo robuste. Analyse l'état du cadre et des pneus.' "
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); min-height: 80px; font-family: inherit; font-size: 0.9rem; background: #FAFAFA"></textarea>
+                        <div style="margin-top:15px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05)">
+                            <label class="toggle-group"
+                                title="Active des délais aléatoires et récupère plus de pages (Anti-Ban)">
+                                <span class="switch"><input type="checkbox" id="deep-search-toggle"><span
+                                        class="slider"></span></span>
+                                <span style="font-weight:600; color:var(--primary)">🕵️ Mode Furtif (Veille
+                                    Profonde)</span>
+                            </label>
+                            <p style="font-size:0.7rem; color:var(--text-muted); margin-top:4px">Récupère jusqu'à 150
+                                annonces (3 pages) avec des délais de protection.</p>
+                        </div>
+                    </div>
+
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>🌐 Plateformes de recherche</label>
+                        <div style="display:flex; gap:20px; margin-top:10px; flex-wrap:wrap">
+                            <label class="checkbox-group">
+                                <input type="checkbox" id="platform-lbc" checked> Leboncoin
+                            </label>
+                            <label class="checkbox-group">
+                                <input type="checkbox" id="platform-ebay"> eBay
+                            </label>
+                            <label class="checkbox-group">
+                                <input type="checkbox" id="platform-vinted"> Vinted
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px">
+                            <label>🤖 Instructions IA</label>
+                            <button type="button" class="btn-link"
+                                style="font-size:0.75rem; color:var(--primary); padding:2px 8px"
+                                onclick="openGemBuilder()">✨ Aide Gem</button>
+                        </div>
+                        <textarea id="ai-context" placeholder="Ex: 'Cherche un vélo sans rouille, cadre alu.' "
+                            style="min-height: 60px;"></textarea>
                     </div>
                 </div>
             </section>
 
-            <button class="btn-search" onclick="performSearch()">RECHERCHER SUR LEBONCOIN</button>
-            <button class="btn-link" onclick="createWatchFromSearch()"
-                style="width:100%; border-color: var(--text-muted); color: var(--text-muted); margin-top:10px">💾
-                Transformer cette recherche en veille active</button>
+            <button class="btn-search" onclick="performSearch()">LANCER LA RECHERCHE</button>
+            <button class="btn-link" onclick="createWatchFromSearch()" style="width:100%; margin-top:10px">💾
+                Enregistrer cette veille</button>
 
-            <div class="results-header">
-                <h2 id="results-count">Résultats récents</h2>
-                <div style="color: var(--text-muted); font-size: 0.9rem" id="last-update">Prêt pour la recherche</div>
+            <div class="results-header" style="margin-top:2rem">
+                <h2 id="results-count">Résultats</h2>
+                <div style="color: var(--text-muted); font-size: 0.9rem" id="last-update">Prêt</div>
             </div>
 
             <div class="ads-grid" id="ads-grid-live">
                 <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: #AAA;">
-                    <p>Entrez vos critères et lancez la recherche.</p>
+                    <p>Définissez vos filtres ci-dessus.</p>
                 </div>
             </div>
         </section>
@@ -662,41 +343,138 @@
         <!-- --- VIEW 2: WATCHES --- -->
         <section id="view-watches" class="view-section">
             <div class="results-header">
-                <h2>📡 Mes Sessions de Veilles Actives</h2>
+                <h2>📡 Vos Veilles Actives</h2>
             </div>
+
+            <div id="watch-stats-bar"
+                style="display:flex; gap:20px; margin-bottom:20px; background:var(--card-bg); padding:1.2rem; border-radius:16px; border:1px solid var(--glass-border); backdrop-filter:var(--blur)">
+                <div class="stat-pill"><b>Total :</b> <span id="stat-total-watches">0</span> veilles</div>
+                <div class="stat-pill"><b>Annonces :</b> <span id="stat-total-ads">0</span></div>
+                <div class="stat-pill" style="background:var(--primary-soft); color:var(--primary)"><b>Nouveau :</b>
+                    <span id="stat-new-ads">0</span> ✨
+                </div>
+            </div>
+
             <div id="active-watches-list"
-                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px">
-                <!-- Watches go here -->
+                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px"></div>
+        </section>
+
+        <!-- --- VIEW 3: SYSTEM LOGS --- -->
+        <section id="view-logs" class="view-section">
+            <div class="results-header">
+                <h2>🖥️ Console de Surveillance</h2>
+                <div style="display:flex; gap:10px">
+                    <button class="btn-primary" onclick="copySystemLogs()"
+                        style="padding: 5px 15px; font-size: 0.9rem;">📋 Copier tout</button>
+                    <button class="btn-link" onclick="clearSystemLogs()" style="color:var(--danger)">🗑️
+                        Effacer</button>
+                </div>
+            </div>
+
+            <div id="full-system-log-container" style="
+                    background: #1e1e1e; 
+                    color: #d4d4d4; 
+                    font-family: 'Consolas', 'Monaco', monospace; 
+                    padding: 15px; 
+                    border-radius: 12px; 
+                    height: 600px; 
+                    overflow-y: auto; 
+                    border: 1px solid var(--border);
+                    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+                ">
+                <div style="color: #6a9955; margin-bottom: 10px;">// Logs de l'application LBC Finder...</div>
+                <div id="full-system-logs"></div>
             </div>
         </section>
 
-        <!-- --- SEARCH DASHBOARD --- -->
+        <!-- --- DASHBOARD --- -->
         <section id="view-dashboard" class="view-section">
             <div class="results-header"
-                style="flex-direction:column; align-items:flex-start; gap:5px; margin-bottom: 2rem; background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border)">
-                <div style="display:flex; justify-content:space-between; width:100%; align-items:center">
-                    <h2 id="current-search-name" style="color:var(--primary)">Nom de la recherche</h2>
+                style="background: var(--card-bg); padding: 1.5rem; border-radius: 20px; border: 1px solid var(--border); margin-bottom: 2rem; display: block;">
+                <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                    <h2 id="current-search-name" style="color:var(--primary); margin:0;">Dashboard</h2>
                     <div style="display:flex; gap:10px">
-                        <button class="btn-primary" style="padding: 0.5rem 1rem; font-size:0.8rem"
-                            onclick="switchTab('live')">🚀 Relancer/Modifier</button>
-                        <button class="btn-primary"
-                            style="padding: 0.5rem 1rem; font-size:0.8rem; background: var(--secondary)"
-                            onclick="switchTab('watches')">⬅️ Retour</button>
+                        <button class="btn-primary" style="padding: 0.5rem 1rem; background: var(--success);"
+                            onclick="refreshCurrentSearch()" id="btn-refresh-dashboard">🔄 Actualiser
+                            <div class="loader" id="refresh-loader"
+                                style="display:none; width:12px; height:12px; border-width:2px; margin-left:5px"></div>
+                        </button>
+                        <button class="btn-link" style="padding: 0.5rem 1rem; color: var(--danger);"
+                            onclick="clearAllAnalyses()">🗑️ Suppr. Analyses</button>
+                        <button class="btn-link" style="padding: 0.5rem 1rem" onclick="openSearchSettings()">⚙️
+                            Paramètres</button>
+                        <button class="btn-primary" style="padding: 0.5rem 1rem" onclick="openManualAdModal()">🔗
+                            Ajouter un lien</button>
+                        <button class="btn-primary" style="padding: 0.5rem 1rem" onclick="switchTab('live')">🚀
+                            Nouveau</button>
+                        <button class="btn-link" style="padding: 0.5rem 1rem" onclick="switchTab('watches')">⬅️
+                            Retour</button>
                     </div>
                 </div>
-                <div id="current-search-stats" style="color:var(--text-muted); font-size:0.9rem">Filtres appliqués...
+
+                <div
+                    style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; border-top: 1px solid var(--border); padding-top: 15px;">
+                    <div id="current-search-stats" style="color:var(--text-muted); font-size:0.9rem; font-weight:600;">
+                        Statistiques...</div>
+                    <div style="display:flex; gap:15px; align-items:center">
+                        <div class="view-toggles"
+                            style="display:flex; background:var(--bg); padding:3px; border-radius:8px">
+                            <button id="btn-view-grid" class="view-btn active"
+                                style="padding:4px 12px; border:none; border-radius:6px; cursor:pointer"
+                                onclick="setViewMode('grid')">GRID</button>
+                            <button id="btn-view-list" class="view-btn"
+                                style="padding:4px 12px; border:none; border-radius:6px; cursor:pointer"
+                                onclick="setViewMode('list')">LIST</button>
+                        </div>
+                        <select id="dashboard-sort" onchange="runDashboardSort()"
+                            style="padding:5px 10px; font-size:0.8rem">
+                            <option value="date-desc">🕒 Plus récent</option>
+                            <option value="price-asc">💰 Prix croissant</option>
+                            <option value="score-desc">⭐ Meilleur score IA</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="update-alert"
+                    style="display:none; background:var(--success); color:white; padding:12px 20px; border-radius:12px; margin-top:15px; font-weight:700; cursor:pointer; text-align:center;"
+                    onclick="loadHistory(currentSearchName)">
+                    ✨ <span id="update-alert-text">Nouvelles annonces trouvées ! Cliquez pour rafraîchir.</span>
+                </div>
+
+                <div id="tag-cloud-container"
+                    style="margin-top:20px; padding-top:15px; border-top: 1px dashed var(--border); display:none;">
+                    <div
+                        style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; font-weight:800; text-transform:uppercase;">
+                        🏷️ Filtres intelligents (mots-clés extraits) :</div>
+                    <div id="tag-cloud" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
                 </div>
             </div>
 
-            <!-- Sub-Tabs -->
-            <div style="display:flex; gap:10px; margin-bottom:20px; border-bottom:1px solid var(--border)">
-                <div class="tab active subtab" onclick="switchSubTab('history')">📦 Annonces</div>
-                <div class="tab subtab" onclick="switchSubTab('map')">🗺️ Carte</div>
-                <div class="tab subtab" onclick="switchSubTab('trends')">📊 Marché</div>
+            <div
+                style="display:flex; justify-content: space-between; align-items: center; margin-bottom:20px; border-bottom:1px solid var(--border)">
+                <div style="display:flex; gap:10px;">
+                    <div class="tab active subtab" onclick="switchSubTab('history')">📦 Annonces</div>
+                    <div class="tab subtab" onclick="switchSubTab('top')">🏆 Top Affaires IA</div>
+                    <div class="tab subtab" onclick="switchSubTab('map')">🗺️ Carte</div>
+                    <div class="tab subtab" onclick="switchSubTab('trends')">📊 Marché</div>
+                </div>
+                <button id="btn-filter-manual" class="btn-link" onclick="toggleManualFilter()"
+                    style="margin-bottom: 5px; color: #7C3AED; border-color: #7C3AED; font-weight:800;">📝 Mes Ajouts
+                    Manuels</button>
             </div>
 
             <div id="sub-history" class="sub-view active">
                 <div class="ads-grid" id="ads-grid-history"></div>
+            </div>
+            <div id="sub-top" class="sub-view" style="display:none">
+                <div id="top-ai-header" class="ai-summary-box"
+                    style="margin-bottom: 20px; display:none; position: relative;">
+                    <button class="btn-primary"
+                        style="position: absolute; top: 15px; right: 15px; padding: 5px 12px; font-size: 0.8rem;"
+                        onclick="openExportModal()">📋 Copier Top 10</button>
+                    <div id="top-ai-header-content"></div>
+                </div>
+                <div class="ads-grid" id="ads-grid-top"></div>
             </div>
             <div id="sub-map" class="sub-view" style="display:none">
                 <div id="map"></div>
@@ -705,583 +483,298 @@
                 <div class="chart-container"><canvas id="priceChart"></canvas></div>
             </div>
         </section>
-
-        <style>
-            .sub-view.active {
-                display: block !important;
-            }
-
-            .sub-view {
-                display: none;
-            }
-
-            .subtab.active {
-                color: var(--primary);
-                border-bottom: 3px solid var(--primary);
-            }
-        </style>
     </div>
 
-    <div class="compare-bar" id="compare-bar">
-        <span id="compare-text">0 annonce sélectionnée</span>
-        <button class="btn-primary" onclick="runComparison()">Comparer avec l'IA ✨</button>
-        <button style="background:none; border:none; color:white; cursor:pointer"
-            onclick="clearSelection()">Annuler</button>
+    <!-- Modals -->
+    <div class="compare-bar" id="compare-bar" style="gap:15px; padding: 10px 25px;">
+        <span id="compare-text" style="font-weight:700">0 sélectionnée(s)</span>
+        <button class="btn-link" onclick="selectAllVisible()" style="color:white; font-size:0.8rem">Tout
+            sélectionner</button>
+        <button class="btn-primary" onclick="runComparison()" style="white-space:nowrap">📊 Comparer</button>
+        <button class="btn-primary" onclick="hideSelectedAds()" style="background:var(--danger); white-space:nowrap">🗑️
+            Masquer</button>
+        <div
+            style="flex:1; display:flex; gap:10px; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 8px;">
+            <input type="text" id="selective-prompt" placeholder="Prompt IA spécial..."
+                style="flex:1; background:none; border:none; color:white; outline:none; font-size:0.85rem">
+            <button class="btn-primary" onclick="runSelectiveAnalysis()"
+                style="background:var(--success); padding: 4px 10px; font-size:0.8rem">🤖 Analyser</button>
+        </div>
+        <button class="btn-link" onclick="clearSelection()" style="color:white; font-size:1.2rem">×</button>
+    </div>
+
+    <button class="btn-primary" onclick="clearSelectedAnalyses()"
+        style="background:var(--danger); padding: 4px 10px; font-size:0.8rem">🗑️ Supprimer Analyses</button>
+    <button style="background:none; border:none; color:white; cursor:pointer; font-weight:600"
+        onclick="clearSelection()">Vider ✕</button>
     </div>
 
     <div class="modal" id="compare-modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal()">×</span>
-            <h3>✨ Recommandation de votre Personal Shopper IA</h3>
-            <div id="compare-result" style="line-height:1.6">
-                <!-- AI Result here -->
-                <p>Analyse en cours...</p>
-            </div>
+            <div id="compare-result"></div>
         </div>
     </div>
 
     <div class="modal" id="gem-builder-modal">
         <div class="modal-content">
             <span class="close" onclick="closeGemModal()">×</span>
-            <h3>✨ Assistant de Rédaction (Gem)</h3>
-            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem">Expliquez simplement votre
-                objectif (ex: "Je veux un vélo pour mon fils de 10 ans") et l'IA construira une instruction d'expert
-                pour vous.</p>
-            <input type="text" id="gem-goal" placeholder="Quel est votre objectif ?"
-                style="width:100%; margin-bottom:10px">
-            <button class="btn-search" onclick="buildGem()">Générer les instructions d'expert</button>
-            <div id="gem-loading" style="display:none; text-align:center; padding:1rem">
+            <h3>✨ Assistant de Rédaction</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem">Quel est le but précis de votre
+                recherche ? (ex: "PC Gamer pour 800€, pas de composants trop vieux")</p>
+            <input type="text" id="gem-goal" placeholder="Votre objectif..." style="width:100%; margin-bottom:15px">
+            <button class="btn-search" onclick="buildGem()">Générer l'instruction expert</button>
+            <div id="gem-loading" style="display:none; text-align:center; padding:1.5rem">
                 <div class="loader" style="display:inline-block"></div>
             </div>
             <div id="gem-preview"
-                style="display:none; margin-top:20px; background:var(--bg); padding:1.5rem; border-radius:12px; font-size:0.9rem; font-style:italic; border:1px dashed var(--border)">
-                <!-- Preview here -->
+                style="display:none; margin-top:20px; background:var(--bg); padding:1rem; border-radius:12px; font-size:0.9rem; border:1px dashed var(--border)">
             </div>
             <button id="btn-use-gem" class="btn-primary" style="display:none; width:100%; margin-top:15px"
                 onclick="useGem()">Utiliser cette instruction</button>
         </div>
     </div>
 
-    <div id="notification">Notification message</div>
+    <div class="modal" id="export-modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('export-modal').classList.remove('show')">×</span>
+            <h3>📋 Export Top 10 Affaires</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem">Voici votre sélection prête à
+                être copiée-collée.</p>
 
-    <!-- Scripts -->
+            <div style="margin-bottom: 15px;">
+                <label class="toggle-group">
+                    <span class="switch"><input type="checkbox" id="export-include-ai" checked
+                            onchange="generateExportText()"><span class="slider"></span></span>
+                    <span>Inclure les notes de l'IA</span>
+                </label>
+            </div>
+
+            <textarea id="export-text"
+                style="width:100%; height:300px; font-family:monospace; font-size:0.85rem; margin-bottom:15px"
+                readonly></textarea>
+
+            <button class="btn-primary" style="width:100%" onclick="copyToClipboard()">Copier dans le
+                presse-papier</button>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal" id="help-modal">
+        <div class="modal-content" style="max-width: 800px; padding: 2rem;">
+            <span class="close" onclick="closeHelpModal()">×</span>
+            <h2 style="color:var(--primary); margin-bottom: 20px;">📘 Guide d'Utilisation</h2>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px; text-align: left;">
+                <div class="help-section">
+                    <h3 style="margin-bottom:10px">📡 Créer une veille</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.5">
+                        Utilisez l'onglet <b>"Nouveau"</b>. Tapez votre recherche en langage naturel (ex: <i>"VTT
+                            électrique autour de Rennes max 1500€"</i>).
+                        Vous pouvez ajouter plusieurs villes, départements ou régions pour une même veille.
+                    </p>
+                    <ul style="font-size:0.85rem; margin-top:10px; padding-left:20px;">
+                        <li><b>Manuel :</b> Mise à jour quand vous le décidez.</li>
+                        <li><b>Auto :</b> L'outil scanne tout seul périodiquement.</li>
+                        <li><b>Mode Furtif :</b> Plus lent, mais évite les blocages LBC.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h3 style="margin-bottom:10px">🤖 Intelligence Artificielle</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.5">
+                        L'IA analyse vos annonces pour détecter les pépites ou les arnaques.
+                    </p>
+                    <ul style="font-size:0.85rem; margin-top:10px; padding-left:20px;">
+                        <li><b>Score :</b> Une note sur 10 basée sur le rapport qualité/prix.</li>
+                        <li><b>Résumé :</b> Points forts (✅) et points faibles (❌).</li>
+                        <li><b>Négociation :</b> Génère un message type pour baisser le prix.</li>
+                        <li><b>Comparaison :</b> Sélectionnez 2+ annonces et comparez-les.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h3 style="margin-bottom:10px">📦 Gestion des annonces</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.5">
+                        Maintenez votre dashboard propre.
+                    </p>
+                    <ul style="font-size:0.85rem; margin-top:10px; padding-left:20px;">
+                        <li><b>🗑️ Masquer :</b> Supprime visuellement l'annonce.</li>
+                        <li><b>🔗 Ajouter :</b> Pour forcer une annonce via son URL.</li>
+                        <li><b>📉 Baisse :</b> Détecté automatiquement si le prix change.</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h3 style="margin-bottom:10px">📢 Notifications</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.5">
+                        Reliez un Webhook Discord dans les paramètres de la veille pour recevoir les alertes dès qu'une
+                        pépite (score > 8) est trouvée !
+                    </p>
+                </div>
+            </div>
+
+            <button class="btn-primary" style="margin-top:30px; width:100%" onclick="closeHelpModal()">C'est compris
+                !</button>
+        </div>
+    </div>
+
+
+    <!-- AI Chat Window -->
+    <div id="ai-chat-bubble" onclick="toggleChat()">🤖</div>
+    <!-- AI Status Overlay -->
+    <!-- AI Status Overlay REMOVED. Replaced by fixed bottom panel -->
+    <!-- AI Log Panel REMOVED (Moved to Header) -->
+
+    <div id="ai-chat-window">
+        <div id="ai-chat-header">
+            <span>🤖 Assistant Gemini</span>
+            <span onclick="toggleChat()" style="cursor:pointer">×</span>
+        </div>
+        <div id="ai-chat-messages">
+            <div class="message ai">Bonjour ! Je suis prêt à discuter de vos trouvailles. Quel objet vous intéresse
+                aujourd'hui ?</div>
+        </div>
+        <div id="ai-chat-input-area">
+            <input type="text" id="ai-chat-input" placeholder="Posez votre question..."
+                onkeypress="if(event.key==='Enter') sendChatMessage()">
+            <button onclick="sendChatMessage()">🚀</button>
+        </div>
+    </div>
+
+
+    <!-- Feedback / Bug Report Modal -->
+    <div id="feedback-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+                <h2 style="margin:0">💡 Améliorer l'application</h2>
+                <span class="close" onclick="closeFeedbackModal()">×</span>
+            </div>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:20px">
+                Une idée ? Un bug ? Décrivez-le ci-dessous pour aider à améliorer l'outil.
+            </p>
+
+            <div class="form-group">
+                <label>Type</label>
+                <div style="display:flex; gap:20px; margin-top:5px">
+                    <label style="cursor:pointer; display:flex; gap:8px; align-items:center">
+                        <input type="radio" name="feedback-type" value="bug" checked> 🐛 Bug
+                    </label>
+                    <label style="cursor:pointer; display:flex; gap:8px; align-items:center">
+                        <input type="radio" name="feedback-type" value="feature"> ✨ Idée / Fonctionnalité
+                    </label>
+                    <label style="cursor:pointer; display:flex; gap:8px; align-items:center">
+                        <input type="radio" name="feedback-type" value="other"> 💬 Autre
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:15px">
+                <label>Description</label>
+                <textarea id="feedback-msg" rows="5" placeholder="Décrivez le problème ou votre idée..."
+                    style="width:100%"></textarea>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:20px">
+                <button class="btn-primary" style="flex:1" onclick="submitFeedback()">Envoyer</button>
+                <button class="btn-link" onclick="closeFeedbackModal()">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Ad Modal -->
+    <div class="modal" id="manual-ad-modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('manual-ad-modal').classList.remove('show')">×</span>
+            <h3>🔗 Ajouter manuellement une annonce</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem">Collez le lien Leboncoin pour
+                l'ajouter à ce dashboard.</p>
+            <input type="text" id="manual-ad-url" placeholder="https://www.leboncoin.fr/..."
+                style="width:100%; margin-bottom:15px">
+            <button class="btn-primary" style="width:100%" onclick="submitManualAd()">Ajouter l'annonce</button>
+        </div>
+    </div>
+
+    <div id="notification">Notification</div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <script>
-        let keywords = [];
-        let metadata = { categories: [], regions: [], departments: [] };
-        let adsData = [];
-        let selectedAds = [];
-        let map = null;
-        let chart = null;
-
-        async function init() {
-            try {
-                const resp = await fetch('/api/metadata');
-                metadata = await resp.json();
-
-                // Populate categories
-                const catSelect = document.getElementById('category-select');
-                metadata.categories.sort((a, b) => a.name.localeCompare(b.name)).forEach(c => {
-                    if (c.id === '0') return;
-                    const opt = document.createElement('option');
-                    opt.value = c.name.toUpperCase().replace(/ /g, '_');
-                    opt.innerText = c.name;
-                    catSelect.appendChild(opt);
-                });
-
-                loadWatches();
-                await loadHistory();
-                initMap();
-            } catch (e) {
-                console.error("Metadata load error", e);
-            }
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab:not(.subtab)').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-
-            if (event && event.target && event.target.classList.contains('tab')) {
-                event.target.classList.add('active');
-            }
-            document.getElementById(`view-${tabId}`).classList.add('active');
-
-            if (tabId === 'watches') loadWatches();
-        }
-
-        function switchSubTab(subId) {
-            document.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.sub-view').forEach(s => s.classList.remove('active'));
-
-            if (event && event.target) event.target.classList.add('active');
-            document.getElementById(`sub-${subId}`).classList.add('active');
-
-            if (subId === 'map') {
-                setTimeout(() => map.invalidateSize(), 200);
-                renderMap();
-            }
-            if (subId === 'trends') renderTrends();
-        }
-
-        async function openDashboard(searchName) {
-            currentSearchName = searchName;
-            document.getElementById('current-search-name').innerText = searchName;
-            switchTab('dashboard');
-            switchSubTab('history');
-            await loadHistory(searchName);
-        }
-
-        async function editWatch(name) {
-            const resp = await fetch(`/api/searches/${encodeURIComponent(name)}`);
-            const s = await resp.json();
-
-            // Populate form
-            keywords = [s.query_text];
-            document.getElementById('loc-city').value = s.city || '';
-            document.getElementById('price-min').value = s.price_min || '';
-            document.getElementById('price-max').value = s.price_max || '';
-            document.getElementById('ai-context').value = s.ai_context || '';
-
-            renderKeywords();
-            switchTab('live');
-            showNotify("Paramètres chargés. Vous pouvez modifier et enregistrer.");
-        }
-
-        function openGemBuilder() {
-            document.getElementById('gem-builder-modal').classList.add('show');
-        }
-
-        function closeGemModal() {
-            document.getElementById('gem-builder-modal').classList.remove('show');
-        }
-
-        async function buildGem() {
-            const goal = document.getElementById('gem-goal').value;
-            if (!goal) return showNotify("Dites-moi ce que vous cherchez.");
-
-            const loader = document.getElementById('gem-loading');
-            const preview = document.getElementById('gem-preview');
-            const btn = document.getElementById('btn-use-gem');
-
-            loader.style.display = 'block';
-            preview.style.display = 'none';
-            btn.style.display = 'none';
-
-            try {
-                const resp = await fetch('/api/gem-builder', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ goal: goal })
-                });
-                const data = await resp.json();
-                preview.innerText = data.instructions;
-                preview.style.display = 'block';
-                btn.style.display = 'block';
-            } catch (e) {
-                showNotify("Erreur lors de la construction.");
-            } finally {
-                loader.style.display = 'none';
-            }
-        }
-
-        function useGem() {
-            document.getElementById('ai-context').value = document.getElementById('gem-preview').innerText;
-            closeGemModal();
-            showNotify("Instruction IA mise à jour !");
-        }
-
-        function initMap() {
-            map = L.map('map').setView([46.603354, 1.888334], 6); // Center of France
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-        }
-
-        function renderMap() {
-            // Clear markers (crude way for demo)
-            map.eachLayer(layer => {
-                if (layer instanceof L.Marker) map.removeLayer(layer);
-            });
-
-            adsData.forEach(ad => {
-                if (ad.lat && ad.lng) {
-                    const price = ad.price ? `${ad.price}€` : '';
-                    L.marker([ad.lat, ad.lng])
-                        .addTo(map)
-                        .bindPopup(`<b>${ad.title}</b><br>${price}<br><a href="${ad.url}" target="_blank">Voir</a>`);
-                }
-            });
-        }
-
-        function renderTrends() {
-            const ctx = document.getElementById('priceChart').getContext('2d');
-            if (chart) chart.destroy();
-
-            // Group by category for trends
-            const catCounts = {};
-            adsData.forEach(ad => {
-                const cat = ad.category || 'Inconnu';
-                if (!catCounts[cat]) catCounts[cat] = { sum: 0, count: 0 };
-                catCounts[cat].sum += ad.price || 0;
-                catCounts[cat].count++;
-            });
-
-            const labels = Object.keys(catCounts);
-            const averages = labels.map(l => (catCounts[l].sum / catCounts[l].count).toFixed(0));
-
-            chart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Prix moyen par catégorie (€)',
-                        data: averages,
-                        backgroundColor: '#FF6E14',
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
-        }
-
-        function addKeyword() {
-            const input = document.getElementById('keyword-input');
-            const val = input.value.trim();
-            if (val && !keywords.includes(val)) {
-                keywords.push(val);
-                renderKeywords();
-            }
-            input.value = '';
-        }
-
-        function removeKeyword(kw) {
-            keywords = keywords.filter(k => k !== kw);
-            renderKeywords();
-        }
-
-        function renderKeywords() {
-            const list = document.getElementById('keywords-list');
-            list.innerHTML = '';
-            keywords.forEach(kw => {
-                const tag = document.createElement('div');
-                tag.className = 'keyword-tag';
-                tag.innerHTML = `${kw} <span onclick="removeKeyword('${kw}')">×</span>`;
-                list.appendChild(tag);
-            });
-        }
-
-        function updateLocUI() {
-            const type = document.getElementById('loc-type').value;
-            const group = document.getElementById('loc-val-group');
-            const cityInput = document.getElementById('loc-city');
-            const radiusInput = document.getElementById('loc-radius');
-            const select = document.getElementById('loc-select');
-            const label = document.getElementById('loc-val-label');
-
-            group.style.display = type === 'none' ? 'none' : 'flex';
-            cityInput.style.display = type === 'city' ? 'block' : 'none';
-            radiusInput.style.display = type === 'city' ? 'block' : 'none';
-            select.style.display = (type === 'dept' || type === 'region') ? 'block' : 'none';
-
-            select.innerHTML = '';
-            if (type === 'dept') {
-                label.innerText = 'Choisissez le département';
-                metadata.departments.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                    const opt = document.createElement('option');
-                    opt.value = d.id;
-                    opt.innerText = d.name;
-                    select.appendChild(opt);
-                });
-            } else if (type === 'region') {
-                label.innerText = 'Choisissez la région';
-                metadata.regions.sort((a, b) => a.name.localeCompare(b.name)).forEach(r => {
-                    const opt = document.createElement('option');
-                    opt.value = r.id;
-                    opt.innerText = r.name;
-                    select.appendChild(opt);
-                });
-            } else if (type === 'city') {
-                label.innerText = 'Ville et rayon (km)';
-            }
-        }
-
-        async function performSearch() {
-            const loader = document.getElementById('global-loader');
-            loader.style.display = 'block';
-
-            const payload = {
-                queries: keywords,
-                category: document.getElementById('category-select').value,
-                price_min: parseInt(document.getElementById('price-min').value) || null,
-                price_max: parseInt(document.getElementById('price-max').value) || null,
-                delivery: document.getElementById('delivery-toggle').checked,
-                sort: document.getElementById('sort-select').value,
-                owner_type: document.getElementById('owner-select').value === 'all' ? null : document.getElementById('owner-select').value
-            };
-
-            const locType = document.getElementById('loc-type').value;
-            if (locType === 'city') {
-                payload.city = document.getElementById('loc-city').value;
-                payload.radius = document.getElementById('loc-radius').value;
-            } else if (locType === 'dept') {
-                payload.department = document.getElementById('loc-select').value;
-            } else if (locType === 'region') {
-                payload.region = document.getElementById('loc-select').value;
-            }
-
-            try {
-                const resp = await fetch('/api/quick-search', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const ads = await resp.json();
-                adsData = ads; // Store temporarily
-                renderAds(ads, 'ads-grid-live');
-                showNotify(`${ads.length} annonces trouvées !`);
-            } catch (e) {
-                showNotify("Erreur lors de la recherche.");
-                console.error(e);
-            } finally {
-                loader.style.display = 'none';
-            }
-        }
-
-        async function createWatchFromSearch() {
-            const sentence = keywords.join(' ') + ' ' + (document.getElementById('loc-city').value || '');
-            if (!sentence.trim()) {
-                showNotify("Veuillez entrer au moins un mot-clé.");
-                return;
-            }
-
-            console.log("Saving watch with ads:", adsData);
-
-            const resp = await fetch('/api/searches', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sentence: sentence,
-                    ai_context: document.getElementById('ai-context').value,
-                    initial_ads: adsData // Pass current search results to save them
-                })
-            });
-
-            if (resp.ok) {
-                showNotify("La veille a été configurée et les résultats actuels ont été sauvegardés !");
-                switchTab('watches');
-                loadWatches();
-            } else {
-                showNotify("Erreur lors de la création de la veille.");
-            }
-        }
-
-        async function loadWatches() {
-            const resp = await fetch('/api/searches');
-            const searches = await resp.json();
-            const list = document.getElementById('active-watches-list');
-            list.innerHTML = '';
-
-            if (searches.length === 0) {
-                list.innerHTML = '<p style="text-align:center; padding: 2rem; color: #AAA;">Aucune veille active.</p>';
-                return;
-            }
-
-            searches.forEach(s => {
-                const item = document.createElement('div');
-                item.className = 'search-container';
-                item.style = "margin:0; padding:1.5rem; display:flex; flex-direction:column; gap:15px";
-                item.innerHTML = `
-                    <div style="display:flex; justify-content:space-between">
-                         <div>
-                            <div style="font-weight:800; color:var(--primary); font-size:1.1rem">${s.name}</div>
-                            <div style="font-size:0.8rem; color:var(--text-muted)">Query: ${s.query_text} | ${s.city || 'Partout'}</div>
-                         </div>
-                         <button onclick="deleteWatch('${s.name}')" style="background:none; border:none; color:#AAA; cursor:pointer; font-size:1.5rem">×</button>
-                    </div>
-                    <div style="background:var(--bg); padding:10px; border-radius:8px; font-size:0.8rem; color:var(--text-muted); border:1px dashed var(--border)">
-                        <b>Instructions IA:</b> ${s.ai_context || 'Standard'}
-                    </div>
-                    <div style="display:flex; gap:10px">
-                        <button class="btn-primary" style="flex:1" onclick="openDashboard('${s.name}')">📈 Dashboard</button>
-                        <button class="btn-link" style="padding:5px 15px; border-radius:12px" onclick="editWatch('${s.name}')">✏️ Edit</button>
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-        }
-
-        async function deleteWatch(name) {
-            if (!confirm(`Supprimer la veille "${name}" ?`)) return;
-            const resp = await fetch(`/api/searches/${encodeURIComponent(name)}`, { method: 'DELETE' });
-            if (resp.ok) {
-                showNotify("Veille supprimée.");
-                loadWatches();
-            }
-        }
-
-        async function loadHistory(searchName = null) {
-            const url = searchName ? `/api/ads?search_name=${encodeURIComponent(searchName)}` : '/api/ads';
-            const resp = await fetch(url);
-            const ads = await resp.json();
-            adsData = ads;
-            renderAds(ads, 'ads-grid-history');
-
-            if (searchName) {
-                document.getElementById('current-search-stats').innerText = `${ads.length} annonces trouvées pour cette session`;
-            }
-        }
-
-        async function runBatchAnalysis() {
-            const loader = document.getElementById('global-loader');
-            loader.style.display = 'block';
-            try {
-                const resp = await fetch('/api/analyze', { method: 'POST' });
-                const result = await resp.json();
-                showNotify(result.message);
-                loadHistory();
-            } catch (e) {
-                showNotify("Erreur lors de l'analyse IA.");
-            } finally {
-                loader.style.display = 'none';
-            }
-        }
-
-        function toggleAdSelection(adId) {
-            // Convert to string to avoid type mismatch
-            const sid = String(adId);
-            const index = selectedAds.findIndex(a => String(a.id) === sid);
-            const card = document.querySelector(`.ad-card[data-id="${adId}"]`);
-
-            if (index > -1) {
-                selectedAds.splice(index, 1);
-                if (card) card.classList.remove('selected');
-                console.log("Removed ad:", sid);
-            } else {
-                const ad = adsData.find(a => String(a.id) === sid);
-                if (ad) {
-                    selectedAds.push(ad);
-                    if (card) card.classList.add('selected');
-                    console.log("Added ad:", sid);
-                }
-            }
-
-            const bar = document.getElementById('compare-bar');
-            const text = document.getElementById('compare-text');
-
-            if (selectedAds.length > 0) {
-                text.innerText = `${selectedAds.length} annonce(s) sélectionnée(s)`;
-                bar.classList.add('show');
-            } else {
-                bar.classList.remove('show');
-            }
-        }
-
-        function clearSelection() {
-            selectedAds = [];
-            document.querySelectorAll('.ad-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById('compare-bar').classList.remove('show');
-        }
-
-        async function runComparison() {
-            if (selectedAds.length < 2) {
-                showNotify("Sélectionnez au moins 2 annonces pour comparer.");
-                return;
-            }
-
-            document.getElementById('compare-modal').classList.add('show');
-            document.getElementById('compare-result').innerHTML = '<div style="text-align:center; padding:2rem"><div class="loader" style="display:inline-block; width:40px; height:40px"></div><p>Analyse comparative en cours...</p></div>';
-
-            try {
-                const resp = await fetch('/api/compare', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ads: selectedAds })
-                });
-                const data = await resp.json();
-                document.getElementById('compare-result').innerHTML = marked.parse(data.recommendation);
-            } catch (e) {
-                document.getElementById('compare-result').innerHTML = "Désolé, une erreur est survenue lors de l'analyse.";
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('compare-modal').classList.remove('show');
-        }
-
-        function renderAds(ads, gridId) {
-            const grid = document.getElementById(gridId);
-            if (gridId === 'ads-grid-live') {
-                document.getElementById('results-count').innerText = `${ads.length} résultats trouvés`;
-                document.getElementById('last-update').innerText = `Mis à jour à ${new Date().toLocaleTimeString()}`;
-            }
-
-            grid.innerHTML = '';
-            if (ads.length === 0) {
-                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: #AAA;">Aucun résultat trouvé.</div>';
-                return;
-            }
-
-            ads.forEach(ad => {
-                const card = document.createElement('div');
-                card.className = 'ad-card' + (selectedAds.find(s => s.id === ad.id) ? ' selected' : '');
-                card.setAttribute('data-id', ad.id);
-
-                const img = ad.image_url || 'https://via.placeholder.com/300x180?text=Pas+d+image';
-                const price = ad.price ? `${ad.price.toLocaleString()} €` : 'Prix ?';
-                const date = new Date(ad.date).toLocaleDateString();
-
-                const score = ad.ai_score ? `
-                    <div style="background: ${ad.ai_score > 7 ? '#10B981' : '#F59E0B'}; color:white; padding:4px 8px; border-radius:8px; font-size:0.75rem; font-weight:800; display:inline-block; margin-bottom:8px">
-                        Note IA: ${ad.ai_score}/10
-                    </div>
-                ` : '';
-
-                const aiSummary = ad.ai_summary ? `<div style="background:#FEE2D5; color:#D35400; padding:10px; border-radius:8px; font-size:0.75rem; margin-top:10px; font-weight:600">🤖 ${ad.ai_summary}</div>` : '';
-                const aiTips = ad.ai_tips ? `<div style="border-left: 3px solid #4183D7; padding-left: 10px; font-size: 0.75rem; color: #4183D7; margin-top: 10px; font-style: italic">💡 Conseil négociation: ${ad.ai_tips}</div>` : '';
-
-                card.innerHTML = `
-                    <div class="ad-img-box" onclick="window.open('${ad.url}', '_blank')">
-                        <div class="select-check" onclick="event.stopPropagation(); toggleAdSelection('${ad.id}')"></div>
-                        <img src="${img}" class="ad-img" onerror="this.src='https://via.placeholder.com/300x180?text=Image+Invalide'">
-                    </div>
-                    <div class="ad-info" onclick="window.open('${ad.url}', '_blank')">
-                        ${score}
-                        <div class="ad-title">${ad.title}</div>
-                        <div class="ad-price">${price}</div>
-                        <div class="ad-meta">
-                            <span>📍 ${ad.location}</span>
-                            <span>🕒 ${date}</span>
-                        </div>
-                        ${aiSummary}
-                        ${aiTips}
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        function showNotify(msg) {
-            const n = document.getElementById('notification');
-            n.innerText = msg;
-            n.classList.add('show');
-            setTimeout(() => n.classList.remove('show'), 3000);
-        }
-
-        function toggleTheme() {
-            document.body.classList.toggle('dark-theme');
-            localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
-        }
-
-        if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-theme');
-
-        init();
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="/static/js/main.js"></script>
+    <div class="modal" id="search-settings-modal">
+        <div class="modal-content" style="max-width:600px">
+            <span class="close"
+                onclick="document.getElementById('search-settings-modal').classList.remove('show')">×</span>
+            <h3>⚙️ Paramètres de la veille</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:20px">Modifiez ici les réglages
+                spécifiques à "<b><span id="settings-watch-name"></span></b>".</p>
+
+            <div class="form-group">
+                <label>🔍 Mots-clés / Requête</label>
+                <textarea id="settings-query-text" rows="2" placeholder="Ex: vélo vtt rockrider"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>🤖 Instructions IA Globales</label>
+                <textarea id="settings-ai-context" rows="6"
+                    placeholder="Instructions pour le résumé et le score..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>📢 Webhook Discord Spécifique (Optionnel)</label>
+                <input type="text" id="settings-discord-webhook" placeholder="https://discord.com/api/webhooks/..."
+                    style="width:100%">
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:5px">Laissez vide pour utiliser le
+                    webhook global.</p>
+            </div>
+
+            <div class="form-group">
+                <label>🕒 Mode d'actualisation</label>
+                <div style="display:flex; gap:10px; align-items:center">
+                    <select id="settings-refresh-mode" style="flex:1"
+                        onchange="document.getElementById('settings-interval-group').style.display = (this.value==='auto'?'block':'none')">
+                        <option value="manual">Manuel</option>
+                        <option value="auto">Automatique</option>
+                        <option value="none">Statique</option>
+                    </select>
+                    <label class="toggle-group"
+                        style="background:var(--bg); border:1px solid var(--border); padding:5px 12px; border-radius:8px">
+                        <span class="switch"><input type="checkbox" id="settings-deep-search"><span
+                                class="slider"></span></span>
+                        <span style="font-size:0.85rem">🕵️ Furtif</span>
+                    </label>
+                </div>
+            </div>
+
+
+            <div class="form-group">
+                <label>🌐 Plateformes actives</label>
+                <div style="display:flex; gap:15px; margin-top:5px">
+                    <label class="checkbox-group"><input type="checkbox" id="settings-platform-lbc"> LBC</label>
+                    <label class="checkbox-group"><input type="checkbox" id="settings-platform-ebay"> eBay</label>
+                    <label class="checkbox-group"><input type="checkbox" id="settings-platform-vinted"> Vinted</label>
+                </div>
+            </div>
+
+            <div id="settings-interval-group" class="form-group" style="display:none">
+                <label>Intervalle (minutes)</label>
+                <input type="number" id="settings-refresh-interval" value="60">
+            </div>
+
+            <hr style="border:none; border-top:1px solid var(--border); margin:20px 0">
+
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-top:20px; font-style: italic;">
+                Note : Si un champ est laissé vide, la configuration globale sera utilisée.
+            </p>
+
+            <div style="margin-top:20px; display:flex; gap:10px">
+                <button class="btn-primary" style="flex:1" onclick="saveSearchSettings()">Enregistrer les
+                    modifications</button>
+                <button class="btn-link"
+                    onclick="document.getElementById('search-settings-modal').classList.remove('show')">Annuler</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

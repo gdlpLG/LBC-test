@@ -10,7 +10,8 @@ Bienvenue dans le manuel d'utilisation de **LBC Finder**. Cet outil est conçu p
 3. [Interface en Ligne de Commande (CLI)](#-interface-en-ligne-de-commande-cli)
 4. [Dashboard Web](#-dashboard-web)
 5. [Fonctionnalités Avancées](#-fonctionnalités-avancées)
-6. [Maintenance et Base de Données](#-maintenance-et-base-de-données)
+7. [Déploiement (Docker / Unraid)](#-déploiement-docker--unraid)
+8. [Maintenance et Base de Données](#-maintenance-et-base-de-données)
 
 ---
 
@@ -54,6 +55,14 @@ LBC Finder utilise l'IA de Google (Gemini) pour résumer les annonces.
     GEMINI_API_KEY=votre_cle_api_ici
     ```
 
+### 📢 Notifications Discord
+
+Pour recevoir des alertes automatiques (pépites IA et baisses de prix) sur Discord :
+1. Créez un **Webhook** sur votre serveur Discord (Paramètres du salon > Intégrations > Webhooks).
+2. Dans le Dashboard Web de LBC Finder, allez dans **Paramètres de la veille** (via le Dashboard d'une veille).
+3. Collez l'URL de votre Webhook dans le champ **Notification Discord**.
+4. Testez la connexion avec le bouton "Tester".
+
 ---
 
 ## 💻 Interface en Ligne de Commande (CLI)
@@ -87,9 +96,14 @@ Ouvrez ensuite votre navigateur à l'adresse : `http://127.0.0.1:5000`
 ### Fonctionnalités
 - **Vue d'ensemble** : Statistiques sur vos annonces (total, prix moyen).
 - **Gestion des veilles** : Ajoutez ou supprimez des recherches actives directement depuis l'interface.
+- **📍 Multi-Localisation** : Saisissez plusieurs zones géographiques (villes avec rayon, départements, régions) pour une même recherche. L'outil regroupera tous les résultats.
+- **🔗 Ajout Manuel** : Cliquez sur le bouton "🔗 Ajouter un lien" pour coller une URL Leboncoin. L'application extraira automatiquement le titre, le prix, la photo et la localisation exacte.
+- **🗑️ Modération & Archivage** : Masquez les annonces qui ne vous intéressent plus en cliquant sur l'icône poubelle (**🗑️**) sur chaque carte.
+- **📦 Actions Groupées** : Sélectionnez plusieurs annonces via le cercle en haut à droite des photos pour faire apparaître la barre d'actions (Tout sélectionner, Masquer la sélection, Comparer).
 - **Filtrage** : Filtrez vos annonces par prix, date ou mot-clé.
-- **Analyse IA en un clic** : Lancez la génération de résumés via le bouton dédié.
+- **Analyse IA en un clic** : Lancez la génération de résumés via le bouton "🤖 Analyser".
 - **Cartographie** (si activée) : Visualisez la localisation des annonces.
+
 
 ---
 
@@ -113,6 +127,16 @@ Chaque annonce peut être analysée pour extraire :
 - **Points faibles** (ex: Rayure sur l'écran, sans facture).
 - **Résumé court** pour gagner du temps.
 
+### 🤝 Aide à la Négociation
+Sur chaque annonce, un bouton **"🤝 Négocier"** permet à l'IA de générer un message personnalisé pour le vendeur. L'IA analyse les points faibles détectés pour proposer un argumentaire de baisse de prix poli et efficace.
+
+### 📊 Comparateur Expert
+Sélectionnez au moins 2 annonces et cliquez sur **"📊 Comparer"** dans la barre flottante. L'IA produira un tableau comparatif détaillé (état, prix, accessoires, localisation) et vous conseillera sur le meilleur choix.
+
+### 📈 Historique des Prix
+Si une annonce change de prix au fil de vos scans, l'outil le détecte et affiche un badge **📉 BAISSE**. Cliquez sur **"📈 Historique"** pour voir l'évolution des tarifs.
+
+
 ---
 
 ## 🛠️ Maintenance et Base de Données
@@ -131,6 +155,51 @@ LBC Finder est un outil expérimental. Veillez à :
 - Respecter les conditions d'utilisation de Leboncoin.
 - Ne pas lancer des veilles avec des délais trop courts pour éviter les bannissements d'IP.
 - Surveiller votre quota d'utilisation de l'API Gemini.
+- Si vous recevez une erreur **429 (Quota Exceeded)** : l'outil réessaiera automatiquement avec un délai. Si l'erreur persiste, c'est que votre quota journalier gratuit est épuisé. Attendez le lendemain ou utilisez une autre clé API.
+
+---
+
+## ❓ FAQ / Dépannage
+
+### L'analyse IA échoue avec une erreur 429
+C'est une limite fixée par Google sur l'usage gratuit. 
+- **Solution 1** : Attendre quelques minutes (l'outil gère désormais les attentes automatiques).
+- **Solution 2** : Attendre le lendemain si le quota journalier est atteint.
+- **Solution 3** : Vérifier que votre clé API est valide sur [Google AI Studio](https://aistudio.google.com/).
+
+### Pourquoi certaines annonces n'ont pas de résumé ?
+Si vous traitez un gros volume (40+ annonces), il est possible que le quota s'épuise en cours de route. L'outil sauvegardera les résumés déjà générés et vous pourrez relancer pour le reste plus tard.
+
+---
+
+## 🐳 Déploiement (Docker / Unraid)
+
+LBC Finder est prêt pour être déployé sur un serveur via Docker, ce qui est idéal pour une utilisation sur **Unraid**, Synology ou un VPS.
+
+### Utilisation de Docker Compose
+1.  Assurez-vous d'avoir configuré votre fichier `.env` à la racine.
+2.  Lancez la commande : `docker-compose up -d --build`.
+3.  **Note Importante** : Si vous modifiez le code, utilisez toujours le flag `--build` pour que vos changements soient pris en compte à l'intérieur du container.
+4.  L'application sera accessible sur `http://IP_DU_SERVEUR:5000`.
+
+### Installation sur Unraid
+Pour installer LBC Finder sur Unraid, suivez ces étapes :
+
+1.  **Préparation** : Créez un dossier `lbc-finder` dans votre partage `appdata` (ex: `/mnt/user/appdata/lbc-finder`).
+2.  **Configuration Docker** :
+    *   Allez dans l'onglet **Docker** de votre interface Unraid.
+    *   Cliquez sur **Add Container** (tout en bas).
+    *   **Name** : `LBC-Finder`
+    *   **Repository** : `python:3.10-slim` (ou construisez votre propre image si vous l'hébergez). 
+    *   *Note : Il est recommandé de construire l'image localement ou d'utiliser le `docker-compose.yml` fourni via la console SSH.*
+3.  **Variables & Chemins (Mappings)** :
+    *   **Port** : Host Port `5000` -> Container Port `5000`.
+    *   **Volume 1 (Données)** : Host Path `/mnt/user/appdata/lbc-finder/data` -> Container Path `/app/data`.
+    *   **Variable ENV** : `GEMINI_API_KEY` = *Votre Clé API*.
+    *   **Variable ENV** : `DB_PATH` = `/app/data/leboncoin_ads.db`.
+
+### Persistance
+La base de données est stockée dans le dossier mappé `/app/data`. Cela permet de conserver vos annonces et réglages même si vous mettez à jour ou redémarrez le container.
 
 ---
 *Développé pour simplifier vos recherches sur leboncoin.*

@@ -23,8 +23,11 @@ Ce document sert de rappel sur la structure et la logique interne du programme `
 ## Base de Données (SQLite)
 
 **Fichier** : `leboncoin_ads.db`
+**Table** : `searches`
+- `name` (PK), `query_text`, `city`, `radius`, `lat`, `lng`, `zip_code`, `locations` (JSON array), `price_min`, `price_max`, `category`, `last_run`, `is_active`, `ai_context`, `refresh_mode`, `refresh_interval`, `platforms`, `last_viewed`.
+
 **Table** : `ads`
-- `id` (PK), `search_name`, `title`, `price` (REAL), `location`, `date`, `url` (UNIQUE), `description`, `ai_summary`.
+- `id` (PK), `search_name`, `title`, `price` (REAL), `location`, `date`, `url` (UNIQUE), `description`, `ai_summary`, `ai_score`, `ai_tips`, `image_url`, `is_pro`, `lat`, `lng`, `category`, `source`.
 
 ## Points Critiques & Regex NLP
 

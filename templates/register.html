@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - LBC Finder Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .login-card {
+            background: var(--panel);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.875rem;
+            font-weight: 600;
+            background: linear-gradient(to right, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-dim);
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            color: white;
+            font-family: inherit;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.875rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        .footer {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--text-dim);
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .error-msg {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .success-msg {
+            background: rgba(34, 197, 94, 0.1);
+            color: #4ade80;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <div class="header">
+            <h1>LBC Finder</h1>
+            <p>Créez votre compte gratuitement</p>
+        </div>
+
+        <div id="error-box" class="error-msg"></div>
+        <div id="success-box" class="success-msg"></div>
+
+        <form id="register-form">
+            <div class="form-group">
+                <label for="username">Nom d'utilisateur</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">S'inscrire</button>
+        </form>
+
+        <div class="footer">
+            Déjà un compte ? <a href="/login">Se connecter</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorBox = document.getElementById('error-box');
+            const successBox = document.getElementById('success-box');
+            errorBox.style.display = 'none';
+            successBox.style.display = 'none';
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    successBox.textContent = result.message;
+                    successBox.style.display = 'block';
+                    setTimeout(() => window.location.href = '/login', 2000);
+                } else {
+                    errorBox.textContent = result.error || 'Erreur lors de l’inscription';
+                    errorBox.style.display = 'block';
+                }
+            } catch (err) {
+                errorBox.textContent = 'Erreur technique';
+                errorBox.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,5 +1,7 @@
 lbc
 requests
-google-generativeai
+google-genai
 python-dotenv
 flask
+beautifulsoup4
+werkzeug

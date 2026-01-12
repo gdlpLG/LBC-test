@@ -11,7 +11,9 @@ Bienvenue dans la documentation utilisateur de **LBC Finder**. Cet outil vous pe
 ## 📋 Fonctionnalités du Menu
 
 ### 1. Recherche Rapide
-Effectuez une recherche instantanée sans mise en veille. Utile pour vérifier si des objets sont actuellement disponibles.
+Effectuez une recherche instantanée sans mise en veille. 
+*   **Nouveau** : Vous pouvez désormais ajouter plusieurs localisations (villes, départements, régions) pour couvrir une zone plus large d'un seul coup.
+Utile pour vérifier si des objets sont actuellement disponibles.
 
 ### 2. Lancer une Veille (NLP)
 C'est la fonction la plus puissante. Vous tapez ce que vous cherchez comme si vous parliez à un ami.

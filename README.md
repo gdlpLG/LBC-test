@@ -8,10 +8,14 @@ LBC Finder automatise la surveillance du site Leboncoin. Contrairement aux alert
 ## ✨ Caractéristiques principales
 
 *   **🔍 Recherche en Langage Naturel (NLP)** : Plus besoin de remplir des formulaires complexes. Tapez simplement : *"Je cherche un vélo électrique à Bordeaux moins de 1000€"*.
+*   **📍 Multi-Localisation & Rayons** : Effectuez des recherches sur plusieurs villes (avec rayons), départements ou régions simultanément dans une seule veille.
 *   **🤖 Analyse IA & Résumés** : L'IA parcourt les descriptions pour vous (points forts, points faibles, caractéristiques clés).
-*   **📂 Base de Données SQLite** : Toutes les annonces trouvées sont sauvegardées localement pour historique et analyse.
-*   **🕵️ Mode Discret** : Délais aléatoires et gestion des agents utilisateurs pour éviter les blocages.
-*   **📈 Analyse de Prix** : Comparez les offres par rapport à votre prix idéal.
+*   **🤝 Aide à la Négociation** : Génération automatique de messages de négociation basés sur l'état de l'objet.
+*   **🔗 Ajout Manuel d'URL** : Ajoutez n'importe quelle annonce via son lien, l'outil s'occupe de récupérer les détails (image, prix, lieu).
+*   **📊 Comparateur Expert** : Sélectionnez plusieurs annonces pour obtenir un comparatif détaillé généré par l'IA.
+*   **🔔 Alertes Discord** : Recevez des notifications instantanées pour les **"Pépites ✨"** et les **baisses de prix 📉**.
+*   **📦 Gestion & Archivage** : Masquez les annonces inutiles et gérez vos sélections par lots.
+*   **🕵️ Mode Furtif** : Délais aléatoires et gestion des agents utilisateurs pour éviter les blocages.
 
 ## 🛠️ Installation
 
@@ -20,8 +24,27 @@ LBC Finder automatise la surveillance du site Leboncoin. Contrairement aux alert
     ```bash
     git clone https://github.com/etienne-hd/lbc-finder.git
     cd lbc-finder
+
+    # Créer un environnement virtuel
+    python -m venv .venv
+
+    # Activer l'environnement (Windows)
+    .venv\Scripts\activate
+    # Activer l'environnement (Linux/Mac)
+    source .venv/bin/activate
+
+    # Installer les dépendances
     pip install -r requirements.txt
     ```
+
+### Configuration ⚙️
+
+Avant de lancer le programme, configurez votre clé API Gemini (gratuite) :
+1. Créez un fichier `.env` à la racine du projet.
+2. Ajoutez-y votre clé :
+   ```env
+   GEMINI_API_KEY=votre_cle_api_ici
+   ```
 
 ### Dashboard Web 📊
 Pour une expérience visuelle premium, lancez le dashboard :
@@ -46,6 +69,7 @@ python main.py
 
 Consultez le manuel complet pour apprendre à utiliser toutes les fonctionnalités :
 - [**Manuel d'Utilisation** (Complet)](MANUEL_UTILISATION.md) 📘
+- [Déploiement **Docker / Unraid**](MANUEL_UTILISATION.md#-déploiement-docker--unraid) 🐳
 
 D'autres documents techniques sont disponibles dans `/documentation` :
 - [Guide Utilisateur (Ancien)](documentation/GUIDE_UTILISATEUR.md)

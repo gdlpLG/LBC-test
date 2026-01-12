@@ -49,17 +49,63 @@ class Searcher:
             from model import Search, Parameters
             
             db_searches = database.get_active_searches()
+            import json
             for s in db_searches:
                 try:
-                    loc = None
-                    if s['lat'] and s['lng']:
-                        loc = [City(lat=s['lat'], lng=s['lng'], radius=s['radius']*1000, city=s['city'])]
-                    elif s['city']:
-                        # Fallback simple if no coordinates (less precise)
-                        loc = [City(lat=0, lng=0, city=s['city'])] # This might not work well without coordinates
+                    locations = []
+                    # 1. Load multiple locations if present
+                    if s.get('locations'):
+                        try:
+                            stored_locs = json.loads(s['locations'])
+                            for loc_data in stored_locs:
+                                l_type = loc_data.get('type')
+                                l_val = loc_data.get('value')
+                                if l_type == 'city':
+                                    # We might need to re-resolve coords if they aren't in the JSON
+                                    # but usually they are (lat/lng/radius). Let's check.
+                                    # If not, we'll use a fallback or skip.
+                                    if 'lat' in loc_data and 'lng' in loc_data:
+                                        locations.append(City(
+                                            lat=loc_data['lat'], 
+                                            lng=loc_data['lng'], 
+                                            radius=int(loc_data.get('radius', 10))*1000,
+                                            city=l_val
+                                        ))
+                                elif l_type == 'department':
+                                    from lbc import Department
+                                    try: locations.append(getattr(Department, l_val))
+                                    except: pass
+                                elif l_type == 'region':
+                                    from lbc import Region
+                                    try: locations.append(getattr(Region, l_val))
+                                    except: pass
+                        except Exception as e:
+                            logger.error(f"Error parsing locations for {s['name']}: {e}")
+
+                    # 2. Fallback to main search location if list is empty
+                    if not locations and s['lat'] and s['lng']:
+                        locations.append(City(lat=s['lat'], lng=s['lng'], radius=s['radius']*1000, city=s['city']))
+
+                    # 3. Handle multiple keywords (separated by comma or stored as is)
+                    # We'll support both single string and comma-separated for OR search behavior
+                    queries = [q.strip() for q in s['query_text'].split(',')] if ',' in s['query_text'] else [s['query_text']]
                     
-                    params = Parameters(text=s['query_text'], locations=loc, price=(s['price_min'], s['price_max']))
-                    self._searches.append(Search(name=s['name'], parameters=params, handler=handle, delay=random.randint(900, 1500)))
+                    for q in queries:
+                        if not q: continue
+                        params = Parameters(
+                            text=q, 
+                            locations=locations if locations else None, 
+                            price=(s['price_min'], s['price_max'])
+                        )
+                        # Create a Search object for each keyword to run them in parallel/sequence
+                        # We append the keyword to the name to distinguish them in logs
+                        search_name = f"{s['name']} ({q})" if len(queries) > 1 else s['name']
+                        self._searches.append(Search(
+                            name=search_name, 
+                            parameters=params, 
+                            handler=handle, 
+                            delay=random.randint(900, 1500)
+                        ))
                 except Exception as e:
                     logger.warning(f"Could not load search '{s['name']}' from DB: {e}")
 
