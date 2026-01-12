@@ -449,6 +449,13 @@ async function createWatchFromSearch() {
 
     });
 
+    let result = {};
+    try {
+        result = await resp.json();
+    } catch (e) {
+        console.error("Failed to parse error response", e);
+    }
+
     if (resp.ok) {
         showNotify("Veille enregistrée !");
         selectedLocations = [];
@@ -456,7 +463,8 @@ async function createWatchFromSearch() {
         switchTab('watches');
         loadWatches();
     } else {
-        showNotify("Échec de l'enregistrement.");
+        showNotify(`Erreur: ${result.message || "Échec de l'enregistrement"}`);
+        console.error("Save Error:", result);
     }
 }
 

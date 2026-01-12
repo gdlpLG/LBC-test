@@ -27,35 +27,50 @@ Ce guide vous explique comment installer LBC Finder sur votre serveur Unraid en 
 
 ---
 
+
 ## 🐳 Étape 3 : Lancement (Docker Compose)
 
-C'est la méthode la plus simple pour construire et lancer l'application avec toutes ses dépendances.
+Comme le port **5000** est souvent pris, j'ai configuré le port **5090** par défaut.
 
-1.  Ouvrez le **Terminal** de votre Unraid (icône `>_` en haut à droite de l'interface Web).
-2.  Naviguez dans le dossier de l'application :
+1.  Ouvrez le **Terminal** de votre Unraid.
+2.  Naviguez dans le dossier :
     ```bash
     cd /mnt/user/appdata/lbc-finder
     ```
-3.  Lancez l'application :
+3.  (Optionnel) Si vous voulez changer le port **5090** :
+    *   Éditez le fichier : `nano docker-compose.yml`
+    *   Modifiez la ligne `- "5090:5000"` (ne touchez pas à la partie droite `:5000`).
+    *   Sauvegardez (`Ctrl+X`, `Y`, `Entrée`).
+
+4.  Lancez l'application :
     ```bash
     docker compose up -d --build
     ```
-    *(Cette commande va construire l'image Docker locale, ce qui peut prendre 1 à 2 minutes la première fois).*
-
-4.  Vérifiez que tout tourne :
-    ```bash
-    docker logs -f lbc-finder
-    ```
-    Vous devriez voir : `Running on http://0.0.0.0:5000`. (Faites `Ctrl+C` pour quitter les logs).
 
 ---
 
-## 🌐 Étape 4 : Accès à l'application
+## 🔒 Étape 4 : Configuration Tailscale / Pangolin
 
-Ouvrez votre navigateur web et allez à l'adresse :
-`http://IP_DE_VOTRE_UNRAID:5000`
+Puisque vous utilisez **Tailscale** et **Pangolin** (Reverse Proxy) :
 
-(Exemple : `http://192.168.1.50:5000`)
+1.  **Dans Pangolin** :
+    *   Créez un nouveau **Service** ou **Host**.
+    *   **Nom** : `lbc-finder`.
+    *   **Scheme** : `http`
+    *   **Forward IP** : Mettez l'adresse IP locale de votre serveur Unraid (ex: `192.168.1.50`).
+        *   *Note : Ne mettez pas 127.0.0.1 (localhost).*
+    *   **Forward Port** : `5090` (ou celui choisi à l'étape 3).
+    *   **Public URL** : Votre URL Tailscale (ex: `lbc.votre-tailnet.ts.net`).
+
+2.  **Accès** :
+    *   Accédez via votre URL Tailscale depuis n'importe quel appareil connecté à votre VPN.
+
+---
+
+## 🌐 Étape 5 : Vérification locale
+
+Vérifiez que le conteneur tourne bien via l'IP locale :
+`http://IP_UNRAID:5090`
 
 ---
 
@@ -69,8 +84,22 @@ Si vous modifiez le code ou téléchargez une nouvelle version :
     docker compose up -d --build
     ```
 
-## 🛠️ Dépannage
-*   **Permissions** : Si vous avez des erreurs de base de données ("Read-only file system"), lancez cette commande dans le terminal Unraid sur le dossier data :
+## 🛠️ Dépannage (Important)
+
+### ❌ Symptôme : "Aucune annonce" ou Erreur 500
+Si vous voyez une **Erreur 500** dans la console (ex: `POST /api/searches 500`) ou aucune image :
+
+1.  **Permissions du dossier** : C'est la cause n°1. Le conteneur ne peut pas écrire dans `leboncoin_ads.db` car il appartient à `root` ou à un autre user.
     ```bash
-    chmod -R 777 /mnt/user/appdata/lbc-finder/data
+    # Commande magique à lancer dans le terminal Unraid :
+    chmod -R 777 /mnt/user/appdata/lbc-finder
     ```
+    *Note: Faites-le sur tout le dossier `lbc-finder` pour être sûr.*
+
+2.  **Redémarrage** :
+    ```bash
+    cd /mnt/user/appdata/lbc-finder
+    docker compose down
+    docker compose up -d
+    ```
+

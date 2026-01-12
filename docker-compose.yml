@@ -3,7 +3,7 @@ services:
     build: .
     container_name: lbc-finder
     ports:
-      - "5000:5000"
+      - "5090:5000" # Port Host : Port Container (Modifier 5090 si utilisé)
     volumes:
       - ./data:/app/data
     env_file:
